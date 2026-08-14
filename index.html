@@ -1,0 +1,2329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Command Center — CSE 2027 / BPSC Ops</title>
+
+<!-- PWA / installable app support -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0d11">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Command Center">
+<style>
+:root{
+  --bg:#0a0d11;
+  --panel:#11161c;
+  --panel2:#161c24;
+  --line:#232b34;
+  --text:#dfe6ec;
+  --muted:#8695a3;
+  --dim:#5b6772;
+  --gold:#d1a544;
+  --gold-dim:#8a6f36;
+  --teal:#3fa89a;
+  --green:#4caf7d;
+  --yellow:#e0a838;
+  --red:#d9615c;
+  --purple:#9b7fd4;
+  --mono:ui-monospace,'SF Mono',Consolas,'Roboto Mono',monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  --radius:3px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--sans);}
+body{padding-bottom:60px;}
+::selection{background:var(--gold-dim);color:#fff;}
+a{color:var(--gold);}
+h1,h2,h3,h4{font-weight:600;margin:0 0 8px;letter-spacing:.2px;}
+.mono{font-family:var(--mono);}
+.muted{color:var(--muted);}
+.dim{color:var(--dim);}
+.small{font-size:11px;}
+button{font-family:var(--sans);cursor:pointer;}
+input,select,textarea{font-family:var(--sans);background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:var(--radius);padding:6px 8px;}
+input:focus,select:focus,textarea:focus{outline:1px solid var(--gold);}
+
+/* ===== HEADER / TICKER ===== */
+#topbar{position:sticky;top:0;z-index:50;background:linear-gradient(180deg,#0d1117,#0a0d11 90%);border-bottom:1px solid var(--line);}
+#ticker{display:flex;align-items:center;gap:0;overflow-x:auto;padding:10px 14px;gap:22px;}
+.tick{display:flex;flex-direction:column;min-width:max-content;}
+.tick .v{font-family:var(--mono);font-size:17px;font-weight:600;color:var(--gold);}
+.tick .l{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);}
+.brand{display:flex;align-items:center;gap:10px;padding:10px 14px 0;}
+.brand .dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);}
+.brand h1{font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:#f0f3f6;}
+.brand .sub{font-size:11px;color:var(--muted);font-family:var(--mono);}
+
+/* ===== NAV ===== */
+#nav{display:flex;overflow-x:auto;background:var(--panel);border-bottom:1px solid var(--line);}
+#nav button{background:none;border:none;color:var(--muted);padding:11px 14px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;border-bottom:2px solid transparent;}
+#nav button.active{color:var(--gold);border-bottom-color:var(--gold);}
+#nav button:hover{color:var(--text);}
+
+main{max-width:1180px;margin:0 auto;padding:16px;}
+.view{display:none;animation:fade .15s ease;}
+.view.active{display:block;}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+.grid{display:grid;gap:12px;}
+.g2{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));}
+.g3{grid-template-columns:repeat(auto-fit,minmax(200px,1fr));}
+.g4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px;}
+.card h3{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px;}
+.stat{font-family:var(--mono);font-size:26px;font-weight:600;color:#f0f3f6;}
+.stat.sm{font-size:18px;}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.row + .row{margin-top:6px;}
+
+.bar{height:7px;background:var(--panel2);border-radius:6px;overflow:hidden;border:1px solid var(--line);}
+.bar > div{height:100%;background:var(--gold);}
+.bar.green>div{background:var(--green);}
+.bar.red>div{background:var(--red);}
+.bar.teal>div{background:var(--teal);}
+
+.badge{display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:10px;font-weight:600;}
+.b-green{background:rgba(76,175,125,.15);color:var(--green);border:1px solid rgba(76,175,125,.4);}
+.b-yellow{background:rgba(224,168,56,.15);color:var(--yellow);border:1px solid rgba(224,168,56,.4);}
+.b-red{background:rgba(217,97,92,.15);color:var(--red);border:1px solid rgba(217,97,92,.4);}
+.b-purple{background:rgba(155,127,212,.15);color:var(--purple);border:1px solid rgba(155,127,212,.4);}
+.b-teal{background:rgba(63,168,154,.15);color:var(--teal);border:1px solid rgba(63,168,154,.4);}
+.b-gold{background:rgba(209,165,68,.15);color:var(--gold);border:1px solid rgba(209,165,68,.4);}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:7px 8px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);}
+td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle;}
+tr:hover td{background:var(--panel2);}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);}
+
+.btn{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:7px 12px;border-radius:var(--radius);font-size:12px;}
+.btn:hover{border-color:var(--gold);color:var(--gold);}
+.btn-gold{background:var(--gold);border-color:var(--gold);color:#1a1408;font-weight:600;}
+.btn-gold:hover{opacity:.9;color:#1a1408;}
+.btn-red{border-color:var(--red);color:var(--red);}
+.btn-sm{padding:3px 8px;font-size:11px;}
+.iconbtn{background:none;border:none;color:var(--muted);font-size:14px;padding:2px 6px;}
+.iconbtn:hover{color:var(--gold);}
+
+.section-title{display:flex;justify-content:space-between;align-items:baseline;margin:26px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px;}
+.section-title h2{font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);}
+.hairline{height:1px;background:var(--line);margin:14px 0;}
+
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--panel2);border:1px solid var(--line);padding:3px 8px;border-radius:12px;font-size:11px;color:var(--muted);}
+.priority-item{border-left:3px solid var(--red);padding:10px 12px;background:var(--panel2);border-radius:var(--radius);margin-bottom:8px;}
+.priority-item.p2{border-color:var(--yellow);}
+.priority-item.p3{border-color:var(--teal);}
+.priority-item.p4{border-color:var(--dim);}
+
+.checklist label{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;border-bottom:1px solid var(--line);}
+.checklist input[type=checkbox]{width:15px;height:15px;accent-color:var(--gold);}
+
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;align-items:center;justify-content:center;padding:16px;}
+.modal-bg.active{display:flex;}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;max-width:480px;width:100%;max-height:88vh;overflow:auto;}
+.modal h3{color:var(--gold);font-size:14px;text-transform:uppercase;}
+.field{margin-bottom:10px;}
+.field label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;}
+.field input,.field select,.field textarea{width:100%;}
+.field textarea{min-height:60px;resize:vertical;}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;}
+
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--gold);color:var(--text);padding:9px 16px;border-radius:var(--radius);font-size:12.5px;z-index:200;opacity:0;transition:opacity .25s;pointer-events:none;}
+.toast.show{opacity:1;}
+
+.blockrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);}
+.blockrow input[type=number]{width:60px;}
+.blockrow input[type=text]{flex:1;}
+
+.chart-bars{display:flex;align-items:flex-end;gap:4px;height:110px;padding-top:8px;}
+.chart-bars .col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
+.chart-bars .fill{width:100%;background:var(--gold);border-radius:2px 2px 0 0;min-height:2px;}
+.chart-bars .fill.under{background:var(--red);}
+.chart-bars .lbl{font-size:9px;color:var(--dim);margin-top:3px;font-family:var(--mono);}
+
+footer{text-align:center;color:var(--dim);font-size:11px;padding:24px 0;font-family:var(--mono);}
+@media(max-width:640px){.stat{font-size:21px;}.brand h1{font-size:13px;}}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="brand">
+    <div class="dot" id="statusDot"></div>
+    <h1>CSE 2027 Command Center</h1>
+    <span class="sub mono" id="phaseLabel">— loading —</span>
+  </div>
+  <div id="ticker"></div>
+</div>
+
+<div id="nav"></div>
+
+<main id="main"></main>
+
+<div class="modal-bg" id="modalBg"><div class="modal" id="modalBody"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================================
+   STATE
+========================================================================= */
+const START_DATE = '2026-08-13';
+const BPSC_DEADLINE = '2026-10-25';
+const MAINS_DEADLINE = '2026-10-31';
+const FINAL_DEADLINE = '2026-12-31';
+const STORAGE_KEY = 'upsc_command_center_v1';
+
+const BPSC_SUBJECTS = [
+  {key:'history', name:'History', pages:375},
+  {key:'polity', name:'Polity', pages:185},
+  {key:'geography', name:'Geography', pages:215},
+  {key:'science', name:'Science', pages:215},
+  {key:'currentAffairs', name:'Current Affairs', pages:155},
+  {key:'biharSpecial', name:'Bihar Special', pages:155},
+];
+const BPSC_REVISION_CYCLES = 5;   // pages must be revised this many times
+const BPSC_PYQ_REVISIONS = 4;     // PYQs must be practiced/revised this many times
+
+const TEST_PAPERS = ['GS Paper I','GS Paper II','GS Paper III','GS Paper IV','Essay','Optional Paper I','Optional Paper II'];
+
+const FINAL_SIMULATOR = [
+  {date:'2026-12-26', label:'Essay — Full Simulator'},
+  {date:'2026-12-27', label:'GS Paper I + GS Paper II'},
+  {date:'2026-12-28', label:'GS Paper III + GS Paper IV'},
+  {date:'2026-12-29', label:'Reserve / Recovery / Weak-Area Correction / Test Analysis'},
+  {date:'2026-12-30', label:'Optional Paper I + Optional Paper II'},
+  {date:'2026-12-31', label:'Complete Performance Analysis'},
+];
+
+const DAILY_TARGET_HOURS = 16;
+const CRITICAL_HOUR_THRESHOLD = DAILY_TARGET_HOURS - 6; // below this = critical / recovery-needed day
+const DEFAULT_BLOCKS = [
+  {name:'Optional', hours:3},
+  {name:'Decode Civils (GS)', hours:3},
+  {name:'Answer Writing', hours:3},
+  {name:'BPSC Revision', hours:4},
+  {name:'BPSC PYQ Practice', hours:3},
+];
+/* Short notes and general revision/active-recall happen inside the blocks above —
+   they are tracked as completion flags (see shortNotes.log) rather than separate hour blocks. */
+
+/* ===== 2027 MASTER TIMELINE CONSTANTS ===== */
+const PRELIMS_FOUNDATION_START = '2026-11-01';
+const PRELIMS_FOUNDATION_END = '2026-12-31';
+const PRELIMS_TEST_PHASE_START = '2027-01-01';
+const PRELIMS_TEST_DEADLINE = '2027-03-31';
+const PRELIMS_FINAL_REVISION_START = '2027-04-01';
+const PRELIMS_2027_EXAM = '2027-05-23';
+const MAINS_TRANSITION_START = '2027-05-25';
+const MAINS2027_FLT_START = '2027-06-01';
+const MAINS2027_TEST_DEADLINE = '2027-07-31';
+const MAINS2027_SIM_START = '2027-08-01';
+const MAINS2027_EXAM = '2027-08-20';
+const PERSONALITY_START = '2026-08-13';
+const PERSONALITY_END = '2027-12-31';
+const PERSONALITY_PHASE2_START = '2027-01-01';
+
+const PRELIMS_SUBJECTS = [
+  {key:'history', name:'History'},
+  {key:'artCulture', name:'Art & Culture'},
+  {key:'polity', name:'Polity'},
+  {key:'geography', name:'Geography'},
+  {key:'economy', name:'Economy'},
+  {key:'environment', name:'Environment & Ecology'},
+  {key:'scienceTech', name:'Science & Technology'},
+  {key:'currentAffairs', name:'Current Affairs'},
+  {key:'schemes', name:'Govt. Schemes / Misc.'},
+];
+
+const CSAT_AREAS = [
+  {key:'readingComprehension', name:'Reading Comprehension'},
+  {key:'quantAptitude', name:'Quantitative Aptitude'},
+  {key:'basicNumeracy', name:'Basic Numeracy'},
+  {key:'dataInterpretation', name:'Data Interpretation'},
+  {key:'logicalReasoning', name:'Logical Reasoning'},
+  {key:'analyticalAbility', name:'Analytical Ability'},
+];
+
+const MAINS2027_PAPERS = ['GS Paper I','GS Paper II','GS Paper III','GS Paper IV','Essay','Optional Paper I','Optional Paper II'];
+
+const SPEAKING_TOPIC_BANK = {
+  'Current Affairs': ['A recent government scheme and its impact','A recent Supreme Court judgment','A current international conflict'],
+  'UPSC Subjects': ['Federalism in India','Climate change and India\'s response','Right to privacy as a fundamental right'],
+  'Bihar': ['Bihar\'s industrial potential','Migration from Bihar — causes and solutions','Bihar\'s education system'],
+  'India': ['India as a soft power','Urbanisation challenges in India','India\'s demographic dividend'],
+  'International Relations': ['India–China relations','Multilateralism vs bilateralism','India\'s neighbourhood-first policy'],
+  'Economy': ['Inflation targeting in India','Gig economy and labour rights','Public vs private sector efficiency'],
+  'Governance': ['E-governance and last-mile delivery','Police reforms in India','Judicial pendency and reform'],
+  'Society': ['Caste and modern Indian politics','Gender gap in workforce participation','Impact of social media on youth'],
+  'Ethics': ['Whistleblowing — right or risk?','Ends vs means in public service','Corruption — systemic or individual failure?'],
+  'Personal Opinion': ['A policy you would change and why','A leader you admire and why','A book that shaped your thinking'],
+  'Abstract Topics': ['Is technology making us less patient?','Can development and sustainability coexist?','Is competition always healthy?'],
+};
+
+function defaultState(){
+  const bpscSubjects = {};
+  BPSC_SUBJECTS.forEach(s=>{
+    bpscSubjects[s.key] = {rev1:0, rev2:0, rev3:0, rev4:0, rev5:0, confidence:2, pyqAccuracy:0, testAccuracy:0, mistakeCount:0, lastRevised:'', nextRevision:''};
+  });
+  const bpscPyqSubjects = {};
+  ['History','Polity','Geography','Science','Current Affairs','Bihar Special','Mixed'].forEach(n=>{
+    bpscPyqSubjects[n] = {total: n==='Mixed'?500: Math.round(6000/7), completed:0, correct:0, incorrect:0, revisionCount:0, nextRevision:''};
+  });
+  const tests = [];
+  TEST_PAPERS.forEach(p=>{
+    tests.push({id:p+'-S1', paper:p, type:'Sectional 1', scheduled:'', completed:'', score:'', max:'', timeTaken:'', attempted:'', mistakes:'', weakTopics:'', analysisDone:false});
+    tests.push({id:p+'-S2', paper:p, type:'Sectional 2', scheduled:'', completed:'', score:'', max:'', timeTaken:'', attempted:'', mistakes:'', weakTopics:'', analysisDone:false});
+    tests.push({id:p+'-FLT', paper:p, type:'Full-Length', scheduled:'', completed:'', score:'', max:'', timeTaken:'', attempted:'', mistakes:'', weakTopics:'', analysisDone:false});
+  });
+
+  /* ---- Prelims 2027 GS subject trackers ---- */
+  const prelimsSubjects = {};
+  PRELIMS_SUBJECTS.forEach(s=>{
+    prelimsSubjects[s.key] = {sourceCompleted:false, notesUpdated:false, revisions:[false,false,false,false,false], revisionDates:['','','','',''], weakTopics:'', hoursSpent:0, status:'Not Started'};
+  });
+
+  /* ---- CSAT areas ---- */
+  const csatAreas = {};
+  CSAT_AREAS.forEach(a=>{
+    csatAreas[a.key] = {hours:0, attempted:0, correct:0, incorrect:0, practiceSessions:0, testsCompleted:0, weakArea:''};
+  });
+
+  /* ---- Prelims PYQ subject-level tracker (2013-2026) ---- */
+  const prelimsPyqSubjects = {};
+  PRELIMS_SUBJECTS.forEach(s=>{
+    prelimsPyqSubjects[s.key] = {total: Math.round(5000/PRELIMS_SUBJECTS.length), completed:0, correct:0, incorrect:0, revisionCount:0, lastAttempted:'', nextRevision:''};
+  });
+
+  /* ---- Prelims Test Calendar: 30 sectional + 20 FLT, auto-distributed Jan-Mar 2027 ---- */
+  const prelimsTests = buildPrelimsTestCalendar();
+
+  /* ---- Mains 2027 FLTs: 7 papers x 3 = 21 ---- */
+  const mainsFlts2027 = [];
+  MAINS2027_PAPERS.forEach(p=>{
+    for(let n=1;n<=3;n++){
+      mainsFlts2027.push({
+        id:p+'-FLT'+n, paper:p, num:n, scheduled:'', attempted:'', score:'', max:'', timeTaken:'',
+        questionsAttempted:'', questionsCompleted:'',
+        contentGaps:false, structureIssue:false, examplesIssue:false, currentAffairsIssue:false, presentationIssue:false,
+        essay:{introduction:'', argumentQuality:'', examples:'', balance:'', structure:'', conclusion:'', philosophicalDepth:''},
+        ethics:{definitions:'', examples:'', caseStudyApproach:'', stakeholderAnalysis:'', ethicalReasoning:''},
+        analysis:{wentWell:'', wentWrong:'', contentGap:'', recallFailure:false, structureProblem:false, timeManagement:false, caGap:false, exampleGap:false, questionInterp:false, presentation:false, actionNext:''},
+        analysisDone:false, reattempt:false,
+      });
+    }
+  });
+
+  return {
+    dashboardVersion: 3,
+    decode: {total:145, completed:0, log:{}},
+    optional: {total:160, completed:0, log:{}},
+    answerWriting: {total:70, completed:0, log:{}},
+    shortNotes: {log:{}},
+    bpscSubjects,
+    bpscPyq: {subjects: bpscPyqSubjects},
+    dailyHours: {},
+    revisionTopics: [],
+    tests,
+    mistakes: [],
+    weeklyReviews: {},
+    blocks: JSON.parse(JSON.stringify(DEFAULT_BLOCKS)),
+
+    prelims2027: {examDate: PRELIMS_2027_EXAM, subjects: prelimsSubjects},
+    csat: {areas: csatAreas},
+    prelimsPyq: {total:5000, subjects: prelimsPyqSubjects, entries: []},
+    prelimsTests: {sectionalTotal:30, fltTotal:20, tests: prelimsTests},
+    prelimsRevisionTopics: [],
+    mains2027: {examDate: MAINS2027_EXAM, testDeadline: MAINS2027_TEST_DEADLINE, pyqSimulations: []},
+    mainsFlts2027,
+    personality: {
+      dailyActivities: [
+        {name:'Read Aloud', minutes:10},
+        {name:'English Speaking', minutes:10},
+        {name:'Explain a UPSC Topic (no notes)', minutes:10},
+        {name:'Current-Affairs Discussion', minutes:10},
+        {name:'Vocabulary', minutes:5},
+        {name:'Self-Review', minutes:5},
+      ],
+      dailyLog: {},
+      sessions: [],
+    },
+    interview: {sessions: []},
+  };
+}
+
+/* Distribute 30 sectional + 20 FLT tests evenly across Jan 1 - Mar 31 2027 */
+function buildPrelimsTestCalendar(){
+  const list = [];
+  const startD = new Date(2027,0,1);
+  const spanDays = daysBetweenRaw('2027-01-01','2027-03-31');
+  let sCount=0, fCount=0;
+  // Build explicit type sequence to guarantee exactly 30 sectional + 20 FLT, interleaved
+  const seq = [];
+  let sRemain=30, fRemain=20;
+  while(sRemain>0 || fRemain>0){
+    if(sRemain/ (sRemain+fRemain) > 0.6 && sRemain>0){ seq.push('Sectional'); sRemain--; }
+    else if(fRemain>0){ seq.push('Full-Length'); fRemain--; }
+    else { seq.push('Sectional'); sRemain--; }
+  }
+  seq.forEach((type,i)=>{
+    const dayOffset = Math.round((i/(seq.length-1)) * spanDays);
+    const d = new Date(startD); d.setDate(d.getDate()+dayOffset);
+    const dateStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if(type==='Sectional') sCount++; else fCount++;
+    list.push({
+      id:'PT-'+(i+1), num:i+1, type, subject:'', scheduled:dateStr, actual:'',
+      score:'', max:'', attempted:'', correct:'', incorrect:'', timeTaken:'',
+      mistakes:'', weakTopics:'', analysisDone:false, reattempt:false,
+    });
+  });
+  return list;
+}
+function daysBetweenRaw(a,b){
+  const [ay,am,ad]=a.split('-').map(Number), [by,bm,bd]=b.split('-').map(Number);
+  return Math.round((new Date(by,bm-1,bd) - new Date(ay,am-1,ad))/86400000);
+}
+
+let STATE = load();
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    return migrate(parsed);
+  }catch(e){ return defaultState(); }
+}
+/* Extend older saved data with any new modules/fields introduced in later versions,
+   without ever discarding existing progress. Shallow keys the user already has (decode,
+   bpscSubjects, tests, etc.) are kept as-is; brand-new top-level keys (prelims2027, csat,
+   mainsFlts2027, personality, interview, ...) are filled in from defaults if missing. */
+function migrate(parsed){
+  const def = defaultState();
+  const merged = Object.assign({}, def, parsed);
+  // Deep-fill any nested objects that may be missing sub-keys (e.g. a subject added later)
+  ['prelims2027','csat','prelimsPyq','prelimsTests','mains2027','personality','interview'].forEach(k=>{
+    if(!parsed[k]) merged[k] = def[k];
+  });
+  if(parsed.prelims2027 && parsed.prelims2027.subjects){
+    PRELIMS_SUBJECTS.forEach(s=>{ if(!parsed.prelims2027.subjects[s.key]) merged.prelims2027.subjects[s.key] = def.prelims2027.subjects[s.key]; });
+  }
+  if(parsed.csat && parsed.csat.areas){
+    CSAT_AREAS.forEach(a=>{ if(!parsed.csat.areas[a.key]) merged.csat.areas[a.key] = def.csat.areas[a.key]; });
+  }
+  if(!parsed.mainsFlts2027 || !parsed.mainsFlts2027.length) merged.mainsFlts2027 = def.mainsFlts2027;
+  if(!parsed.prelimsRevisionTopics) merged.prelimsRevisionTopics = [];
+  // 3-cycle -> 5-cycle BPSC revision upgrade: keep existing rev1-3 progress, add rev4/rev5
+  if(parsed.bpscSubjects){
+    BPSC_SUBJECTS.forEach(s=>{
+      const existing = parsed.bpscSubjects[s.key];
+      if(existing){
+        if(existing.rev4===undefined) merged.bpscSubjects[s.key].rev4 = 0;
+        if(existing.rev5===undefined) merged.bpscSubjects[s.key].rev5 = 0;
+      } else {
+        merged.bpscSubjects[s.key] = def.bpscSubjects[s.key];
+      }
+    });
+  }
+  // BPSC PYQ: add 4x revision-count tracking for users on the older version
+  if(parsed.bpscPyq && parsed.bpscPyq.subjects){
+    Object.keys(def.bpscPyq.subjects).forEach(name=>{
+      const existing = parsed.bpscPyq.subjects[name];
+      if(existing){
+        if(existing.revisionCount===undefined) merged.bpscPyq.subjects[name].revisionCount = 0;
+        if(existing.nextRevision===undefined) merged.bpscPyq.subjects[name].nextRevision = '';
+      } else {
+        merged.bpscPyq.subjects[name] = def.bpscPyq.subjects[name];
+      }
+    });
+  }
+  merged.dashboardVersion = def.dashboardVersion;
+  return merged;
+}
+function save(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE));
+}
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(window._toastT);
+  window._toastT = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* =========================================================================
+   DATE HELPERS
+========================================================================= */
+function todayISO(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function parseISO(s){ const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+function daysBetween(a,b){ return Math.round((parseISO(b) - parseISO(a)) / 86400000); }
+function fmtDate(s){ return parseISO(s).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
+function clampDay(n){ return Math.max(n,0); }
+
+const TODAY = todayISO();
+const totalDays = daysBetween(START_DATE, FINAL_DEADLINE);
+const elapsedDays = clampDay(daysBetween(START_DATE, TODAY)) ;
+const daysToBpsc = clampDay(daysBetween(TODAY, BPSC_DEADLINE));
+const daysToMains = clampDay(daysBetween(TODAY, MAINS_DEADLINE));
+const daysToFinal = clampDay(daysBetween(TODAY, FINAL_DEADLINE));
+const daysSinceStartForBpsc = Math.max(daysBetween(START_DATE, TODAY)+1,1); // for pace calc, inclusive of today
+
+const daysToPrelims2027 = clampDay(daysBetween(TODAY, PRELIMS_2027_EXAM));
+const daysToPrelimsTestDeadline = clampDay(daysBetween(TODAY, PRELIMS_TEST_DEADLINE));
+const daysToMains2027Tests = clampDay(daysBetween(TODAY, MAINS2027_TEST_DEADLINE));
+const daysToMains2027Exam = clampDay(daysBetween(TODAY, MAINS2027_EXAM));
+
+function currentPhase(){
+  if(TODAY < START_DATE) return {n:0, name:'Not started', desc:'Plan begins '+fmtDate(START_DATE)};
+  if(TODAY <= BPSC_DEADLINE) return {n:1, name:'Phase 1 — BPSC Revision + Mains Building', desc:'13 Aug – 25 Oct 2026', dominant:'BPSC Prelims'};
+  if(TODAY <= '2026-10-31') return {n:2, name:'Phase 2 — Finish Mains Content', desc:'1 Oct – 31 Oct 2026', dominant:'Mains 2026 Content'};
+  if(TODAY <= '2026-12-31') return {n:3, name:'Phase 3 — Prelims 2027 Foundation + Mains Revision', desc:'1 Nov – 31 Dec 2026', dominant:'Prelims 2027 GS/CSAT'};
+  if(TODAY <= '2027-03-31') return {n:4, name:'Phase 4 — Prelims Notes + PYQs + Test Series', desc:'1 Jan – 31 Mar 2027', dominant:'Prelims 2027'};
+  if(TODAY <= '2027-05-23') return {n:5, name:'Phase 5 — Final Prelims Revision', desc:'1 Apr – 23 May 2027', dominant:'Prelims 2027 (Final Mode)'};
+  if(TODAY <= '2027-05-24') return {n:6, name:'Phase 6 — Post-Prelims Transition', desc:'24–25 May 2027', dominant:'Transition'};
+  if(TODAY <= '2027-07-31') return {n:7, name:'Phase 7 — Mains 2027 FLTs', desc:'1 Jun – 31 Jul 2027', dominant:'Mains 2027'};
+  if(TODAY <= '2027-08-20') return {n:8, name:'Phase 8 — Final Mains Simulation + PYQ Mode', desc:'1 – 20 Aug 2027', dominant:'Mains 2027 (Final Mode)'};
+  return {n:9, name:'Cycle complete', desc:'Post 20 Aug 2027', dominant:'—'};
+}
+function isPrelimsFinalMode(){ return TODAY>='2027-04-01' && TODAY<='2027-05-23'; }
+function isMainsFinalMode(){ return TODAY>='2027-08-01' && TODAY<='2027-08-20'; }
+
+/* pace engine: remaining / days-remaining-to-deadline */
+function paceEngine(total, completed, deadline){
+  const remaining = Math.max(total - completed, 0);
+  const daysLeft = Math.max(daysBetween(TODAY, deadline), 1);
+  const daysUsed = Math.max(daysBetween(START_DATE, TODAY)+1, 1);
+  const requiredDaily = remaining>0 ? (remaining/daysLeft) : 0;
+  const currentPace = completed / daysUsed;
+  const expectedByNow = ((total)/daysBetween(START_DATE,deadline)) * daysUsed;
+  const status = completed >= expectedByNow ? 'ahead' : (completed >= expectedByNow*0.9 ? 'ontrack' : 'behind');
+  const pctComplete = total>0 ? Math.min(100, (completed/total*100)) : 0;
+  return {remaining, daysLeft, requiredDaily, currentPace, status, pctComplete, expectedByNow};
+}
+
+/* generic version for modules whose window doesn't start on the original START_DATE */
+function paceEngineFrom(total, completed, windowStart, deadline){
+  const remaining = Math.max(total - completed, 0);
+  const daysLeft = Math.max(daysBetween(TODAY, deadline), 1);
+  const daysUsed = Math.max(daysBetween(windowStart, TODAY)+1, 1);
+  const requiredDaily = remaining>0 ? (remaining/daysLeft) : 0;
+  const currentPace = completed / daysUsed;
+  const windowSpan = Math.max(daysBetween(windowStart, deadline),1);
+  const expectedByNow = TODAY<windowStart ? 0 : Math.min(total, (total/windowSpan) * daysUsed);
+  const status = completed >= expectedByNow ? 'ahead' : (completed >= expectedByNow*0.9 ? 'ontrack' : 'behind');
+  const pctComplete = total>0 ? Math.min(100, (completed/total*100)) : 0;
+  return {remaining, daysLeft, requiredDaily, currentPace, status, pctComplete, expectedByNow};
+}
+
+function statusBadge(status){
+  const map = {ahead:'b-green', ontrack:'b-yellow', behind:'b-red'};
+  const label = {ahead:'AHEAD', ontrack:'ON TRACK', behind:'BEHIND'};
+  return `<span class="badge ${map[status]}">${label[status]}</span>`;
+}
+
+/* =========================================================================
+   NAV / VIEWS
+========================================================================= */
+const VIEWS = [
+  {id:'master', label:'Master Dashboard'},
+  {id:'today', label:"Today's Plan"},
+  {id:'mains', label:'UPSC Mains 2026'},
+  {id:'bpsc', label:'BPSC Prelims'},
+  {id:'prelims2027', label:'UPSC Prelims 2027'},
+  {id:'pyq', label:'BPSC PYQs'},
+  {id:'prelimsPyq', label:'Prelims PYQs'},
+  {id:'prelimsTests', label:'Prelims Tests'},
+  {id:'mains2027', label:'Mains 2027'},
+  {id:'mainsFlt', label:'Mains FLTs'},
+  {id:'revision', label:'Revision Intelligence'},
+  {id:'tests', label:'Mains 2026 Tests'},
+  {id:'mistakes', label:'Mistake Log'},
+  {id:'personality', label:'Personality Development'},
+  {id:'interview', label:'Interview / Discussion'},
+  {id:'analytics', label:'Analytics'},
+  {id:'priority', label:'Priorities'},
+  {id:'planner', label:'Weekly / Monthly'},
+  {id:'data', label:'Data'},
+];
+let activeView = 'master';
+
+function renderNav(){
+  const nav = document.getElementById('nav');
+  nav.innerHTML = VIEWS.map(v=>`<button data-v="${v.id}" class="${v.id===activeView?'active':''}">${v.label}</button>`).join('');
+  nav.querySelectorAll('button').forEach(b=>b.onclick=()=>{ activeView=b.dataset.v; renderAll(); window.scrollTo(0,0); });
+}
+
+function renderTicker(){
+  const phase = currentPhase();
+  document.getElementById('phaseLabel').textContent = fmtDate(TODAY)+' · '+phase.name;
+  const mainsRemaining = (STATE.decode.total-STATE.decode.completed)+(STATE.optional.total-STATE.optional.completed)+(STATE.answerWriting.total-STATE.answerWriting.completed);
+  const bpscTotalPages = BPSC_SUBJECTS.reduce((a,s)=>a+s.pages,0)*3;
+  const bpscDone = BPSC_SUBJECTS.reduce((a,s)=>{const d=STATE.bpscSubjects[s.key]; return a+d.rev1+d.rev2+d.rev3+d.rev4+d.rev5;},0);
+  const items = [
+    {l:'Days to BPSC', v: daysToBpsc},
+    {l:'Days to Mains 2026 Content', v: daysToMains},
+    {l:'Days to Prelims 2027', v: daysToPrelims2027},
+    {l:'Days to Mains 2027', v: daysToMains2027Exam},
+    {l:'Mains 2026 Units Remaining', v: mainsRemaining},
+    {l:'BPSC Revision-Pages Left', v: Math.max(bpscTotalPages-bpscDone,0)},
+    {l:"Today's Hours", v: (STATE.dailyHours[TODAY]?.blocks?.reduce((a,b)=>a+(Number(b.actual)||0),0)||0)+' / '+DAILY_TARGET_HOURS},
+  ];
+  document.getElementById('ticker').innerHTML = items.map(i=>`<div class="tick"><span class="v">${i.v}</span><span class="l">${i.l}</span></div>`).join('');
+}
+
+function renderAll(){
+  renderNav(); renderTicker();
+  const main = document.getElementById('main');
+  const fns = {
+    master: viewMaster, today: viewToday, mains: viewMains, bpsc: viewBpsc, pyq: viewPyq,
+    revision: viewRevision, tests: viewTests, mistakes: viewMistakes,
+    analytics: viewAnalytics, priority: viewPriority, planner: viewPlanner, data: viewData,
+    prelims2027: viewPrelims2027, prelimsPyq: viewPrelimsPyq, prelimsTests: viewPrelimsTests,
+    mains2027: viewMains2027, mainsFlt: viewMainsFlt, personality: viewPersonality, interview: viewInterview,
+  };
+  main.innerHTML = `<div class="view active">${fns[activeView]()}</div>`;
+  attachHandlers();
+}
+
+/* =========================================================================
+   PRIORITY / SCORE ENGINE (shared logic)
+========================================================================= */
+function getDailyBlocks(){
+  const dh = STATE.dailyHours[TODAY] || {blocks: JSON.parse(JSON.stringify(STATE.blocks)).map(b=>({...b,done:false,actual:0})), planned:DAILY_TARGET_HOURS};
+  return dh;
+}
+function ensureToday(){
+  if(!STATE.dailyHours[TODAY]){
+    STATE.dailyHours[TODAY] = {planned:DAILY_TARGET_HOURS, blocks: STATE.blocks.map(b=>({name:b.name,hours:b.hours,actual:0,done:false})), notes:''};
+  }
+  return STATE.dailyHours[TODAY];
+}
+
+function computeDailyScore(dateKey){
+  const dh = STATE.dailyHours[dateKey];
+  const actualHours = dh ? dh.blocks.reduce((a,b)=>a+(Number(b.actual)||0),0) : 0;
+  const hourScore = Math.min(25, (actualHours/DAILY_TARGET_HOURS)*25);
+  const mainDone = dh ? dh.blocks.filter(b=>b.done).length : 0;
+  const mainTotal = dh ? dh.blocks.length : 1;
+  const mainScore = (mainDone/mainTotal)*20;
+  const bpscTouched = (STATE.decode.log[dateKey]||0)>0 || Object.values(STATE.bpscSubjects).some(s=>s.lastRevised===dateKey);
+  const bpscScore = bpscTouched ? 15 : 0;
+  const revisionScore = STATE.revisionTopics.some(t=>t.lastRevised===dateKey) ? 10 : 0;
+  const pyqDoneToday = Object.values(STATE.bpscPyq.subjects).reduce((a,s)=>a+((s.logToday===dateKey)?1:0),0)>0;
+  const pyqScore = pyqDoneToday ? 10 : (STATE.pyqTodayFlag===dateKey?10:0);
+  const awScore = STATE.answerWriting.log[dateKey] ? 10 : 0;
+  const snScore = STATE.shortNotes.log[dateKey] ? 5 : 0;
+  const mistakeScore = STATE.mistakes.some(m=>m.date===dateKey) ? 5 : 0;
+  const total = Math.round(hourScore+mainScore+bpscScore+revisionScore+pyqScore+awScore+snScore+mistakeScore);
+  return Math.min(100,total);
+}
+function scoreLabel(s){
+  if(s>=90) return {t:'Excellent',c:'b-green'};
+  if(s>=75) return {t:'Strong',c:'b-teal'};
+  if(s>=60) return {t:'Average',c:'b-yellow'};
+  return {t:'Needs Correction',c:'b-red'};
+}
+
+function computePriorities(){
+  const items = [];
+  // Mains deadline pressure
+  [['Decode Civils',STATE.decode],['Optional',STATE.optional],['Answer Writing',STATE.answerWriting]].forEach(([name,d])=>{
+    const p = paceEngine(d.total, d.completed, MAINS_DEADLINE);
+    if(p.status==='behind') items.push({level:1, text:`${name} is behind pace — need ${p.requiredDaily.toFixed(1)}/day to finish by 31 Oct.`});
+    else if(p.status==='ontrack') items.push({level:3, text:`${name} on track — keep ${p.requiredDaily.toFixed(1)}/day.`});
+  });
+  // BPSC subjects
+  BPSC_SUBJECTS.forEach(s=>{
+    const d = STATE.bpscSubjects[s.key];
+    const revs = (d.rev1>0?1:0)+(d.rev2>0?1:0)+(d.rev3>0?1:0);
+    const status = classifyTopic(revs, d.pyqAccuracy, d.mistakeCount, d.nextRevision);
+    if(status==='CRITICAL') items.push({level:1, text:`${s.name} is CRITICAL — low accuracy (${d.pyqAccuracy}%) with repeated mistakes / overdue revision.`});
+    else if(status==='WEAK') items.push({level:2, text:`${s.name} is WEAK — revision count ${revs}, PYQ accuracy ${d.pyqAccuracy}%. Prioritise today.`});
+  });
+  // Revision topics overdue
+  STATE.revisionTopics.forEach(t=>{
+    if(t.nextRevision && t.nextRevision < TODAY){
+      items.push({level:1, text:`Topic "${t.topic}" (${t.subject}) is overdue for revision since ${fmtDate(t.nextRevision)}.`});
+    }
+  });
+  // PYQ pace
+  const pyqTotal = Object.values(STATE.bpscPyq.subjects).reduce((a,s)=>a+s.total,0);
+  const pyqDone = Object.values(STATE.bpscPyq.subjects).reduce((a,s)=>a+s.completed,0);
+  const pp = paceEngine(pyqTotal, pyqDone, BPSC_DEADLINE);
+  if(pp.status==='behind') items.push({level:1, text:`Overall BPSC PYQ pace insufficient — need ${pp.requiredDaily.toFixed(0)}/day to hit 6,000 by 25 Oct.`});
+  // Unresolved mistakes
+  const unresolved = STATE.mistakes.filter(m=>!m.resolved).length;
+  if(unresolved>0) items.push({level:2, text:`${unresolved} unresolved mistake${unresolved>1?'s':''} in the mistake log — review before new content.`});
+  // Backlog on hours
+  const last7 = last7Days().filter(d=>d!==TODAY);
+  const shortfallDays = last7.filter(d=>{const s=hoursFor(d); return s<CRITICAL_HOUR_THRESHOLD;}).length;
+  if(shortfallDays>=2) items.push({level:2, text:`${shortfallDays} of last 7 days were below 9 focused hours — recovery needed.`});
+
+  // --- 2027 conflict-management: surface the phase-dominant target first ---
+  const phase = currentPhase();
+  if(phase.n>=3){
+    const psub = PRELIMS_SUBJECTS.map(s=>({name:s.name, d:STATE.prelims2027.subjects[s.key]}));
+    psub.forEach(({name,d})=>{
+      if(d.status==='Not Started' && phase.n===3) items.push({level:2, text:`Prelims 2027: ${name} source not yet started — foundation window closes 31 Dec 2026.`});
+    });
+  }
+  if(phase.n===4){
+    const pp2 = STATE.prelimsTests.tests.filter(t=>!t.actual && t.scheduled<TODAY).length;
+    if(pp2>0) items.push({level:1, text:`${pp2} Prelims 2027 test${pp2>1?'s are':' is'} OVERDUE (scheduled date passed, not attempted).`});
+  }
+  if(phase.n===7){
+    const overdueFlt = STATE.mainsFlts2027.filter(t=>!t.attempted && t.scheduled && t.scheduled<TODAY).length;
+    if(overdueFlt>0) items.push({level:1, text:`${overdueFlt} Mains 2027 FLT${overdueFlt>1?'s':''} overdue against schedule.`});
+  }
+  // Personality development — parallel daily habit throughout
+  const personalityLoggedToday = !!STATE.personality.dailyLog[TODAY];
+  if(TODAY>=PERSONALITY_START && TODAY<=PERSONALITY_END && !personalityLoggedToday){
+    items.push({level:3, text:'Personality development not logged today — a short daily session keeps this on track.'});
+  }
+
+  if(items.length===0) items.push({level:4, text:'No critical gaps detected. Maintain current pace and revision cadence.'});
+  return items.sort((a,b)=>a.level-b.level);
+}
+
+/* Smart alerts for the Master Dashboard — colour-coded, example-style messages */
+function generateAlerts(){
+  const alerts = [];
+  if(daysToBpsc<=14 && daysToBpsc>=0 && TODAY<=BPSC_DEADLINE) alerts.push({c:'red', t:`Only ${daysToBpsc} day${daysToBpsc===1?'':'s'} remain for the BPSC revision deadline.`});
+  if(daysToMains<=14 && daysToMains>=0 && TODAY<=MAINS_DEADLINE) alerts.push({c:'red', t:`Only ${daysToMains} day${daysToMains===1?'':'s'} remain to finish Mains 2026 content.`});
+  if(daysToPrelims2027<=30 && daysToPrelims2027>=0) alerts.push({c:'red', t:`Only ${daysToPrelims2027} days remain to UPSC Prelims 2027.`});
+
+  // stale revisions
+  STATE.revisionTopics.forEach(t=>{
+    if(t.lastRevised){
+      const gap = daysBetween(t.lastRevised, TODAY);
+      if(gap>=14) alerts.push({c:'orange', t:`${t.topic} has not been revised for ${gap} days.`});
+    }
+  });
+  BPSC_SUBJECTS.forEach(s=>{
+    const d = STATE.bpscSubjects[s.key];
+    if(d.lastRevised){
+      const gap = daysBetween(d.lastRevised, TODAY);
+      if(gap>=14) alerts.push({c:'orange', t:`${s.name} (BPSC) has not been revised for ${gap} days.`});
+    }
+  });
+
+  // PYQ pace shortfall
+  const pyqTotal = Object.values(STATE.bpscPyq.subjects).reduce((a,s)=>a+s.total,0);
+  const pyqDone = Object.values(STATE.bpscPyq.subjects).reduce((a,s)=>a+s.completed,0);
+  const pp = paceEngine(pyqTotal, pyqDone, BPSC_DEADLINE);
+  if(pp.status==='behind'){
+    const shortfall = Math.max(0, Math.round(pp.expectedByNow-pyqDone));
+    if(shortfall>0) alerts.push({c:'orange', t:`You are behind your BPSC PYQ pace by ${shortfall} questions.`});
+  }
+
+  // revision completions worth celebrating
+  BPSC_SUBJECTS.forEach(s=>{
+    const d = STATE.bpscSubjects[s.key];
+    const revs = (d.rev1>=s.pages?1:0)+(d.rev2>=s.pages?1:0)+(d.rev3>=s.pages?1:0);
+    if(revs>=2) alerts.push({c:'green', t:`You have completed ${revs}/3 revisions of ${s.name}.`});
+  });
+
+  // test score improvement (compare last two scored tests per paper, 2026 tests)
+  const paperGroups = {};
+  STATE.tests.forEach(t=>{ if(t.score!=='' && t.max!=='' && Number(t.max)>0){ (paperGroups[t.paper]=paperGroups[t.paper]||[]).push({...t, pct:Number(t.score)/Number(t.max)*100}); } });
+  Object.entries(paperGroups).forEach(([paper,arr])=>{
+    if(arr.length>=2){
+      const last = arr[arr.length-1], prev = arr[arr.length-2];
+      if(last.pct>prev.pct+3) alerts.push({c:'green', t:`Your ${paper} score improved from ${prev.pct.toFixed(0)}% to ${last.pct.toFixed(0)}%.`});
+    }
+  });
+
+  // strong areas
+  BPSC_SUBJECTS.forEach(s=>{
+    if(STATE.bpscSubjects[s.key].pyqAccuracy>=75) alerts.push({c:'blue', t:`${s.name} is a strong area — PYQ accuracy ${STATE.bpscSubjects[s.key].pyqAccuracy}%.`});
+  });
+
+  if(alerts.length===0) alerts.push({c:'green', t:'No alerts right now — steady state. Keep the daily rhythm going.'});
+  const order = {red:0, orange:1, yellow:2, green:3, blue:4};
+  return alerts.sort((a,b)=>order[a.c]-order[b.c]).slice(0,12);
+}
+function alertIcon(c){ return {red:'🔴', orange:'🟠', yellow:'🟡', green:'🟢', blue:'🔵'}[c]||'⚪'; }
+function classifyTopic(revCount, pyqAcc, mistakes, nextRevision){
+  const overdue = nextRevision && nextRevision < TODAY;
+  if((pyqAcc>0 && pyqAcc<40 && mistakes>=3) || (overdue && mistakes>=3)) return 'CRITICAL';
+  if(revCount<=1 || (pyqAcc>0 && pyqAcc<55)) return 'WEAK';
+  if(revCount===2 || (pyqAcc>=55 && pyqAcc<75)) return 'DEVELOPING';
+  if(revCount>=3 && pyqAcc>=75) return 'STRONG';
+  return 'DEVELOPING';
+}
+/* Prelims 2027 subject status: Not Started / In Progress / Completed / Needs Revision */
+function prelimsSubjectStatus(d){
+  const revsDone = d.revisions.filter(Boolean).length;
+  if(!d.sourceCompleted && !d.notesUpdated) return 'Not Started';
+  if(d.sourceCompleted && d.notesUpdated && revsDone>=1 && revsDone<5) return 'In Progress';
+  if(d.sourceCompleted && d.notesUpdated && revsDone>=5) return 'Completed';
+  if(d.sourceCompleted && revsDone===0) return 'Needs Revision';
+  return 'In Progress';
+}
+function prelimsStrength(pyqAcc, revsDone, mistakeCount){
+  if(pyqAcc>0 && pyqAcc<45 && mistakeCount>=3) return 'CRITICAL';
+  if(revsDone<=1 || (pyqAcc>0 && pyqAcc<55)) return 'WEAK';
+  if(revsDone<=3 || (pyqAcc>=55 && pyqAcc<75)) return 'MODERATE';
+  return 'STRONG';
+}
+function strengthBadge(status){
+  const map = {STRONG:'b-green', MODERATE:'b-yellow', WEAK:'b-red', CRITICAL:'b-purple'};
+  return `<span class="badge ${map[status]||'b-gold'}">${status}</span>`;
+}
+
+/* Prelims Readiness Score /100, with itemised reasons */
+function computeReadinessScore(){
+  const subs = PRELIMS_SUBJECTS.map(s=>({key:s.key,name:s.name,d:STATE.prelims2027.subjects[s.key]}));
+  const notesCompletion = subs.filter(s=>s.d.notesUpdated).length/subs.length*100;
+  const revisionCompletion = subs.reduce((a,s)=>a+s.d.revisions.filter(Boolean).length,0)/(subs.length*5)*100;
+
+  const pyqSubs = Object.values(STATE.prelimsPyq.subjects);
+  const pyqTotal = pyqSubs.reduce((a,s)=>a+s.total,0);
+  const pyqDone = pyqSubs.reduce((a,s)=>a+s.completed,0);
+  const pyqCompletion = pyqTotal? pyqDone/pyqTotal*100 : 0;
+  const pyqRevisionCompletion = pyqSubs.reduce((a,s)=>a+Math.min(s.revisionCount,5),0)/(pyqSubs.length*5)*100;
+
+  const sectionalTests = STATE.prelimsTests.tests.filter(t=>t.type==='Sectional' && t.score!=='' && t.max!=='');
+  const fltTests = STATE.prelimsTests.tests.filter(t=>t.type==='Full-Length' && t.score!=='' && t.max!=='');
+  const sectionalAvg = sectionalTests.length? sectionalTests.reduce((a,t)=>a+Number(t.score)/Number(t.max)*100,0)/sectionalTests.length : 0;
+  const fltAvg = fltTests.length? fltTests.reduce((a,t)=>a+Number(t.score)/Number(t.max)*100,0)/fltTests.length : 0;
+  const testConsistency = sectionalTests.length+fltTests.length>=5 ? Math.min(100, (sectionalTests.length+fltTests.length)/50*100) : (sectionalTests.length+fltTests.length)/50*100;
+
+  const csatVals = Object.values(STATE.csat.areas);
+  const csatAttempted = csatVals.reduce((a,c)=>a+c.attempted,0);
+  const csatCorrect = csatVals.reduce((a,c)=>a+c.correct,0);
+  const csatAvg = csatAttempted? csatCorrect/csatAttempted*100 : 0;
+
+  const totalMistakes = STATE.mistakes.length + STATE.prelimsPyq.entries.filter(e=>e.mistake).length;
+  const resolvedMistakes = STATE.mistakes.filter(m=>m.resolved).length;
+  const mistakeReduction = totalMistakes>0 ? resolvedMistakes/totalMistakes*100 : 100;
+
+  const weakSubs = subs.filter(s=>prelimsStrength(STATE.prelimsPyq.subjects[s.key]?.completed>0 ? (STATE.prelimsPyq.subjects[s.key].correct/(STATE.prelimsPyq.subjects[s.key].completed||1)*100):0, s.d.revisions.filter(Boolean).length, s.d.weakTopics?1:0)==='WEAK');
+  const weakAreaCorrection = 100 - (weakSubs.length/subs.length*100);
+
+  const score = Math.round(
+    notesCompletion*0.15 +
+    revisionCompletion*0.15 +
+    pyqCompletion*0.12 +
+    pyqRevisionCompletion*0.13 +
+    sectionalAvg*0.08 +
+    fltAvg*0.10 +
+    testConsistency*0.07 +
+    csatAvg*0.10 +
+    mistakeReduction*0.05 +
+    weakAreaCorrection*0.05
+  );
+
+  let worstSubj=null, worstAcc=101;
+  PRELIMS_SUBJECTS.forEach(s=>{
+    const ps = STATE.prelimsPyq.subjects[s.key];
+    const acc = ps.completed>0 ? (ps.correct/ps.completed*100) : null;
+    if(acc!==null && acc<worstAcc){ worstAcc=acc; worstSubj=s.name; }
+  });
+
+  return {
+    score: Math.max(0,Math.min(100,score)),
+    notesCompletion, revisionCompletion, pyqCompletion, pyqRevisionCompletion,
+    sectionalAvg, fltAvg, csatAvg, mistakeReduction,
+    worstSubj, worstAcc,
+    fltCompleted: fltTests.length, sectionalCompleted: sectionalTests.length,
+  };
+}
+function readinessLabel(score){
+  if(score>=90) return {t:'Exam Ready', c:'b-green'};
+  if(score>=75) return {t:'Strong but Needs Polishing', c:'b-teal'};
+  if(score>=60) return {t:'Risk Zone', c:'b-yellow'};
+  return {t:'Not Ready', c:'b-red'};
+}
+
+function topicBadge(status){
+  const map = {STRONG:'b-green', DEVELOPING:'b-yellow', WEAK:'b-red', CRITICAL:'b-purple'};
+  return `<span class="badge ${map[status]}">${status}</span>`;
+}
+function hoursFor(dateKey){
+  const dh = STATE.dailyHours[dateKey];
+  if(!dh) return 0;
+  return dh.blocks.reduce((a,b)=>a+(Number(b.actual)||0),0);
+}
+function last7Days(){
+  const arr=[];
+  for(let i=6;i>=0;i--){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    arr.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
+  }
+  return arr;
+}
+function lastNDays(n){
+  const arr=[];
+  for(let i=n-1;i>=0;i--){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    arr.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
+  }
+  return arr;
+}
+
+/* =========================================================================
+   VIEW: TODAY
+========================================================================= */
+function viewToday(){
+  ensureToday();
+  const dh = STATE.dailyHours[TODAY];
+  const actualHours = dh.blocks.reduce((a,b)=>a+(Number(b.actual)||0),0);
+  let hStatus, hClass;
+  if(actualHours>=DAILY_TARGET_HOURS){hStatus='TARGET ACHIEVED';hClass='b-green';}
+  else if(actualHours>=DAILY_TARGET_HOURS-3){hStatus='NEAR TARGET';hClass='b-yellow';}
+  else if(actualHours>=DAILY_TARGET_HOURS-6){hStatus='BEHIND';hClass='b-red';}
+  else{hStatus='CRITICAL';hClass='b-purple';}
+
+  const score = computeDailyScore(TODAY);
+  const sl = scoreLabel(score);
+  const phase = currentPhase();
+
+  const priorities = computePriorities().slice(0,3);
+  const weakest = weakestTopic();
+  const mostOverdue = mostOverdueRevision();
+
+  const mainsRem = (STATE.decode.total-STATE.decode.completed)+(STATE.optional.total-STATE.optional.completed)+(STATE.answerWriting.total-STATE.answerWriting.completed);
+  const pyqTotal = Object.values(STATE.bpscPyq.subjects).reduce((a,s)=>a+s.total,0);
+  const pyqDone = Object.values(STATE.bpscPyq.subjects).reduce((a,s)=>a+s.completed,0);
+  const bpscTotalPages = BPSC_SUBJECTS.reduce((a,s)=>a+s.pages,0)*3;
+  const bpscDone = BPSC_SUBJECTS.reduce((a,s)=>{const d=STATE.bpscSubjects[s.key]; return a+d.rev1+d.rev2+d.rev3+d.rev4+d.rev5;},0);
+
+  return `
+  <div class="grid g4">
+    <div class="card"><h3>Phase</h3><div class="stat sm">${phase.name.split('—')[0].trim()}</div><div class="small dim">${phase.desc}</div></div>
+    <div class="card"><h3>Daily Score</h3><div class="stat" style="color:var(--gold)">${score}<span class="small dim">/100</span></div><span class="badge ${sl.c}">${sl.t}</span></div>
+    <div class="card"><h3>Focused Hours Today</h3><div class="stat">${actualHours.toFixed(1)}<span class="small dim">/${DAILY_TARGET_HOURS}</span></div><span class="badge ${hClass}">${hStatus}</span></div>
+    <div class="card"><h3>Days Remaining</h3><div class="stat">${daysToFinal}</div><div class="small dim">to 31 Dec 2026</div></div>
+  </div>
+
+  <div class="section-title"><h2>Today's ${DAILY_TARGET_HOURS}-Hour Blocks</h2><span class="small dim">${fmtDate(TODAY)}</span></div>
+  <div class="card">
+    ${dh.blocks.map((b,i)=>`
+      <div class="blockrow">
+        <input type="checkbox" ${b.done?'checked':''} data-act="block-done" data-i="${i}">
+        <input type="text" value="${escAttr(b.name)}" data-act="block-name" data-i="${i}">
+        <span class="small dim">planned</span><input type="number" step="0.5" value="${b.hours}" data-act="block-planned" data-i="${i}">
+        <span class="small dim">actual</span><input type="number" step="0.5" value="${b.actual||0}" data-act="block-actual" data-i="${i}">
+      </div>`).join('')}
+    <div class="row" style="margin-top:10px;">
+      <span class="small muted">Planned total: ${dh.blocks.reduce((a,b)=>a+Number(b.hours||0),0)}h · Actual: ${actualHours.toFixed(1)}h · Productivity: ${(dh.blocks.reduce((a,b)=>a+Number(b.hours||0),0)>0 ? Math.round(actualHours/dh.blocks.reduce((a,b)=>a+Number(b.hours||0),0)*100):0)}%</span>
+      <button class="btn btn-sm" data-act="reset-blocks">Reset to Template</button>
+    </div>
+  </div>
+
+  <div class="grid g2" style="margin-top:14px;">
+    <div class="card">
+      <h3>Daily Checklist</h3>
+      <div class="checklist">
+        <label><input type="checkbox" ${STATE.shortNotes.log[TODAY]?'checked':''} data-act="toggle-shortnotes"> Short notes updated</label>
+        <label><input type="checkbox" ${STATE.answerWriting.log[TODAY]?'checked':''} data-act="toggle-aw"> Answer writing class done</label>
+        <label><input type="checkbox" ${STATE.pyqTodayFlag===TODAY?'checked':''} data-act="toggle-pyqflag"> PYQs attempted today</label>
+        <label><input type="checkbox" ${STATE.mistakes.some(m=>m.date===TODAY)?'checked':''} disabled> Mistake log updated (auto — log an entry below)</label>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Top Priorities Today</h3>
+      ${priorities.map(p=>`<div class="priority-item p${p.level}">${p.text}</div>`).join('')}
+      <div class="row"><span class="small muted">Weakest topic</span><b class="small">${weakest}</b></div>
+      <div class="row"><span class="small muted">Most overdue revision</span><b class="small">${mostOverdue}</b></div>
+    </div>
+  </div>
+
+  <div class="grid g3" style="margin-top:14px;">
+    <div class="card"><h3>Mains Content Left</h3><div class="stat sm">${mainsRem} units</div><div class="bar"><div style="width:${100-(mainsRem/(STATE.decode.total+STATE.optional.total+STATE.answerWriting.total)*100)}%"></div></div></div>
+    <div class="card"><h3>BPSC PYQ Progress</h3><div class="stat sm">${pyqDone} / ${pyqTotal}</div><div class="bar teal"><div style="width:${pyqTotal?pyqDone/pyqTotal*100:0}%"></div></div></div>
+    <div class="card"><h3>BPSC Revision-Pages</h3><div class="stat sm">${bpscDone} / ${bpscTotalPages}</div><div class="bar green"><div style="width:${bpscTotalPages?bpscDone/bpscTotalPages*100:0}%"></div></div></div>
+  </div>
+
+  <div class="card" style="margin-top:14px;">
+    <h3>Notes for today</h3>
+    <textarea data-act="today-notes" style="width:100%;min-height:60px;">${dh.notes||''}</textarea>
+  </div>
+  `;
+}
+function weakestTopic(){
+  let worst=null, worstScore=999;
+  BPSC_SUBJECTS.forEach(s=>{
+    const d = STATE.bpscSubjects[s.key];
+    const score = (d.pyqAccuracy||0) - (d.mistakeCount||0)*2;
+    if(score<worstScore){worstScore=score; worst=s.name;}
+  });
+  return worst || '—';
+}
+function mostOverdueRevision(){
+  let worst=null, worstDate='9999-99-99';
+  STATE.revisionTopics.forEach(t=>{
+    if(t.nextRevision && t.nextRevision<worstDate){worstDate=t.nextRevision; worst=t.topic;}
+  });
+  return worst ? `${worst} (due ${fmtDate(worstDate)})` : '—';
+}
+
+/* =========================================================================
+   VIEW: MAINS CONTENT
+========================================================================= */
+function unitCard(title, key, extraLog){
+  const d = STATE[key];
+  const p = paceEngine(d.total, d.completed, MAINS_DEADLINE);
+  const expectedDate = expectedCompletion(d.total, d.completed, p.currentPace);
+  return `
+  <div class="card">
+    <h3>${title} ${statusBadge(p.status)}</h3>
+    <div class="row"><span class="stat sm">${d.completed} / ${d.total}</span><span class="small dim">${p.pctComplete.toFixed(1)}%</span></div>
+    <div class="bar"><div style="width:${p.pctComplete}%"></div></div>
+    <div class="hairline"></div>
+    <div class="row small"><span class="muted">Remaining</span><b>${p.remaining}</b></div>
+    <div class="row small"><span class="muted">Required daily pace</span><b>${p.requiredDaily.toFixed(2)}/day</b></div>
+    <div class="row small"><span class="muted">Your current pace</span><b>${p.currentPace.toFixed(2)}/day</b></div>
+    <div class="row small"><span class="muted">Expected completion</span><b>${expectedDate}</b></div>
+    <div class="row small"><span class="muted">Backlog</span><b>${Math.max(0,Math.round(p.expectedByNow-d.completed))}</b></div>
+    <div class="hairline"></div>
+    <div class="row">
+      <button class="btn btn-sm" data-act="unit-minus" data-key="${key}">−1</button>
+      <span class="small">mark today's progress</span>
+      <button class="btn btn-gold btn-sm" data-act="unit-plus" data-key="${key}">+1</button>
+    </div>
+  </div>`;
+}
+function expectedCompletion(total, completed, currentPace){
+  if(completed>=total) return 'Complete';
+  if(currentPace<=0) return 'No pace data yet';
+  const daysNeeded = Math.ceil((total-completed)/currentPace);
+  const d = new Date(); d.setDate(d.getDate()+daysNeeded);
+  return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+}
+
+function viewMains(){
+  return `
+  <div class="section-title"><h2>UPSC Mains Content Building — Deadline ${fmtDate(MAINS_DEADLINE)}</h2><span class="small dim">${daysToMains} days left</span></div>
+  <div class="grid g3">
+    ${unitCard('Decode Civils (145 videos)','decode')}
+    ${unitCard('Optional (160 videos)','optional')}
+    ${unitCard('Answer Writing (70 classes)','answerWriting')}
+  </div>
+
+  <div class="section-title"><h2>Short-Note System</h2><span class="small dim">Folded into today's blocks — track completion here</span></div>
+  <div class="card">
+    <div class="row">
+      <div><div class="stat sm">${Object.keys(STATE.shortNotes.log).length}</div><div class="small dim">sessions logged</div></div>
+      <div><div class="stat sm">${weeklyShortNoteHours()}h</div><div class="small dim">this week</div></div>
+      <div><div class="stat sm">${monthlyShortNoteHours()}h</div><div class="small dim">this month</div></div>
+      <div><div class="stat sm">${missedShortNoteSessions()}</div><div class="small dim">missed (last 7d)</div></div>
+    </div>
+    <div class="hairline"></div>
+    <label class="row"><span>Mark today's short-note session (${TODAY})</span><input type="checkbox" ${STATE.shortNotes.log[TODAY]?'checked':''} data-act="toggle-shortnotes"></label>
+  </div>
+  `;
+}
+function weeklyShortNoteHours(){ return last7Days().filter(d=>STATE.shortNotes.log[d]).length; }
+function monthlyShortNoteHours(){ return lastNDays(30).filter(d=>STATE.shortNotes.log[d]).length; }
+function missedShortNoteSessions(){ return last7Days().filter(d=>d<=TODAY && !STATE.shortNotes.log[d]).length; }
+
+/* =========================================================================
+   VIEW: BPSC PRELIMS
+========================================================================= */
+function viewBpsc(){
+  const rows = BPSC_SUBJECTS.map(s=>{
+    const d = STATE.bpscSubjects[s.key];
+    const totalRevisions = d.rev1+d.rev2+d.rev3+d.rev4+d.rev5;
+    const totalPossible = s.pages*BPSC_REVISION_CYCLES;
+    const pct = (totalRevisions/totalPossible*100).toFixed(1);
+    const revsDone = ['rev1','rev2','rev3','rev4','rev5'].filter(r=>d[r]>=s.pages).length;
+    const status = classifyTopic(revsDone, d.pyqAccuracy, d.mistakeCount, d.nextRevision);
+    return `<tr>
+      <td><b>${s.name}</b><br><span class="dim small">${s.pages}pg</span></td>
+      <td><input type="number" style="width:56px" value="${d.rev1}" min="0" max="${s.pages}" data-act="bpsc-rev" data-key="${s.key}" data-rev="rev1"></td>
+      <td><input type="number" style="width:56px" value="${d.rev2}" min="0" max="${s.pages}" data-act="bpsc-rev" data-key="${s.key}" data-rev="rev2"></td>
+      <td><input type="number" style="width:56px" value="${d.rev3}" min="0" max="${s.pages}" data-act="bpsc-rev" data-key="${s.key}" data-rev="rev3"></td>
+      <td><input type="number" style="width:56px" value="${d.rev4}" min="0" max="${s.pages}" data-act="bpsc-rev" data-key="${s.key}" data-rev="rev4"></td>
+      <td><input type="number" style="width:56px" value="${d.rev5}" min="0" max="${s.pages}" data-act="bpsc-rev" data-key="${s.key}" data-rev="rev5"></td>
+      <td>${revsDone}/5</td>
+      <td>${pct}%</td>
+      <td><input type="number" style="width:56px" value="${d.pyqAccuracy}" min="0" max="100" data-act="bpsc-field" data-key="${s.key}" data-f="pyqAccuracy">%</td>
+      <td><input type="number" style="width:56px" value="${d.testAccuracy}" min="0" max="100" data-act="bpsc-field" data-key="${s.key}" data-f="testAccuracy">%</td>
+      <td><input type="number" style="width:50px" value="${d.mistakeCount}" min="0" data-act="bpsc-field" data-key="${s.key}" data-f="mistakeCount"></td>
+      <td><input type="date" value="${d.nextRevision}" data-act="bpsc-field" data-key="${s.key}" data-f="nextRevision"></td>
+      <td>${topicBadge(status)}</td>
+    </tr>`;
+  }).join('');
+
+  const totalPagesAll = BPSC_SUBJECTS.reduce((a,s)=>a+s.pages,0);
+  const totalRevPages = BPSC_SUBJECTS.reduce((a,s)=>a+s.pages*BPSC_REVISION_CYCLES,0);
+  const doneRevPages = BPSC_SUBJECTS.reduce((a,s)=>{const d=STATE.bpscSubjects[s.key];return a+d.rev1+d.rev2+d.rev3+d.rev4+d.rev5;},0);
+  const p = paceEngine(totalRevPages, doneRevPages, BPSC_DEADLINE);
+
+  return `
+  <div class="section-title"><h2>BPSC Prelims — ${totalPagesAll.toLocaleString()} pages × ${BPSC_REVISION_CYCLES} revisions = ${totalRevPages.toLocaleString()} page-revisions</h2><span class="small dim">Exam ${fmtDate(BPSC_DEADLINE)} · ${daysToBpsc} days left</span></div>
+  <div class="grid g4">
+    <div class="card"><h3>Page-Revisions Done</h3><div class="stat">${doneRevPages}<span class="small dim">/${totalRevPages}</span></div></div>
+    <div class="card"><h3>Completion</h3><div class="stat">${p.pctComplete.toFixed(1)}%</div>${statusBadge(p.status)}</div>
+    <div class="card"><h3>Required Daily Pace</h3><div class="stat sm">${p.requiredDaily.toFixed(0)} pg-rev/day</div></div>
+    <div class="card"><h3>Your Current Pace</h3><div class="stat sm">${p.currentPace.toFixed(0)} pg-rev/day</div></div>
+  </div>
+
+  <div class="tbl-wrap" style="margin-top:14px;">
+  <table>
+    <thead><tr><th>Subject</th><th>Rev 1</th><th>Rev 2</th><th>Rev 3</th><th>Rev 4</th><th>Rev 5</th><th>Revs</th><th>Complete %</th><th>PYQ Acc.</th><th>Test Acc.</th><th>Mistakes</th><th>Next Revision</th><th>Status</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  </div>
+  <p class="small dim" style="margin-top:8px;">Enter cumulative pages covered for each of the 5 revision passes (0–subject total). Status auto-classifies as Strong / Developing / Weak / Critical from revision depth, PYQ accuracy, mistakes and overdue revision. BPSC study time is tracked as two dedicated blocks on Today's Plan — 4h Revision + 3h PYQ Practice.</p>
+  `;
+}
+
+/* =========================================================================
+   VIEW: PYQs
+========================================================================= */
+function viewPyq(){
+  const subs = STATE.bpscPyq.subjects;
+  const rows = Object.keys(subs).map(name=>{
+    const s = subs[name];
+    const acc = s.correct+s.incorrect>0 ? (s.correct/(s.correct+s.incorrect)*100).toFixed(1) : '—';
+    return `<tr>
+      <td><b>${name}</b></td>
+      <td><input type="number" style="width:70px" value="${s.total}" data-act="pyq-field" data-s="${name}" data-f="total"></td>
+      <td><input type="number" style="width:70px" value="${s.completed}" data-act="pyq-field" data-s="${name}" data-f="completed"></td>
+      <td>${Math.max(s.total-s.completed,0)}</td>
+      <td><input type="number" style="width:60px" value="${s.correct}" data-act="pyq-field" data-s="${name}" data-f="correct"></td>
+      <td><input type="number" style="width:60px" value="${s.incorrect}" data-act="pyq-field" data-s="${name}" data-f="incorrect"></td>
+      <td>${acc}${acc!=='—'?'%':''}</td>
+      <td><input type="number" style="width:50px" value="${s.revisionCount}" min="0" max="${BPSC_PYQ_REVISIONS}" data-act="pyq-field" data-s="${name}" data-f="revisionCount">/${BPSC_PYQ_REVISIONS}</td>
+      <td><input type="date" value="${s.nextRevision}" data-act="pyq-field" data-s="${name}" data-f="nextRevision"></td>
+    </tr>`;
+  }).join('');
+
+  const total = Object.values(subs).reduce((a,s)=>a+s.total,0);
+  const completed = Object.values(subs).reduce((a,s)=>a+s.completed,0);
+  const correct = Object.values(subs).reduce((a,s)=>a+s.correct,0);
+  const incorrect = Object.values(subs).reduce((a,s)=>a+s.incorrect,0);
+  const p = paceEngine(total, completed, BPSC_DEADLINE);
+  const overallAcc = correct+incorrect>0 ? (correct/(correct+incorrect)*100).toFixed(1) : '—';
+  const sufficient = p.currentPace >= p.requiredDaily*0.9;
+  const avgPyqRevisions = Object.values(subs).reduce((a,s)=>a+s.revisionCount,0)/Object.values(subs).length;
+
+  return `
+  <div class="section-title"><h2>BPSC PYQ Tracker — Target ${total.toLocaleString()} · ${BPSC_PYQ_REVISIONS}× Practice Cycle</h2><span class="small dim">Exam ${fmtDate(BPSC_DEADLINE)} · ${daysToBpsc} days left</span></div>
+  <div class="grid g4">
+    <div class="card"><h3>Completed</h3><div class="stat">${completed}<span class="small dim">/${total}</span></div><div class="bar teal"><div style="width:${total?completed/total*100:0}%"></div></div></div>
+    <div class="card"><h3>Accuracy</h3><div class="stat">${overallAcc}${overallAcc!=='—'?'%':''}</div><div class="small dim">${correct} correct · ${incorrect} incorrect</div></div>
+    <div class="card"><h3>Required / Current Pace</h3><div class="stat sm">${p.requiredDaily.toFixed(0)} vs ${p.currentPace.toFixed(0)}/day</div></div>
+    <div class="card"><h3>Avg PYQ Revisions</h3><div class="stat sm">${avgPyqRevisions.toFixed(1)} / ${BPSC_PYQ_REVISIONS}</div></div>
+  </div>
+
+  <div class="tbl-wrap" style="margin-top:14px;">
+  <table>
+    <thead><tr><th>Subject</th><th>Total</th><th>Completed</th><th>Remaining</th><th>Correct</th><th>Incorrect</th><th>Accuracy</th><th>Rev. Count</th><th>Next Revision</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  </div>
+  <div class="card" style="margin-top:12px;">
+    <label class="row"><span>Mark PYQs attempted today (for daily score)</span><input type="checkbox" ${STATE.pyqTodayFlag===TODAY?'checked':''} data-act="toggle-pyqflag"></label>
+  </div>
+  <p class="small dim" style="margin-top:8px;">BPSC PYQ practice is tracked inside the dedicated 3h "BPSC PYQ Practice" block on Today's Plan.</p>
+  `;
+}
+
+/* =========================================================================
+   VIEW: REVISION TRACKER
+========================================================================= */
+function viewRevision(){
+  const rows = STATE.revisionTopics.map((t,i)=>{
+    const status = classifyTopic(t.revCount, t.pyqAcc, t.mistakes, t.nextRevision);
+    const overdue = t.nextRevision && t.nextRevision<TODAY;
+    return `<tr style="${overdue?'background:rgba(217,97,92,.06)':''}">
+      <td><b>${t.topic}</b></td>
+      <td>${t.subject}</td>
+      <td>${t.revCount}</td>
+      <td>${t.lastRevised?fmtDate(t.lastRevised):'—'}</td>
+      <td>${t.nextRevision?fmtDate(t.nextRevision):'—'} ${overdue?'<span class="badge b-red">OVERDUE</span>':''}</td>
+      <td>${t.pyqAcc}%</td>
+      <td>${t.testAcc}%</td>
+      <td>${t.mistakes}</td>
+      <td>${t.confidence}/5</td>
+      <td>${topicBadge(status)}</td>
+      <td>
+        <button class="iconbtn" data-act="rev-inc" data-i="${i}" title="Mark revised now">↻</button>
+        <button class="iconbtn" data-act="rev-edit" data-i="${i}" title="Edit">✎</button>
+        <button class="iconbtn" data-act="rev-del" data-i="${i}" title="Delete">✕</button>
+      </td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="11" class="dim">No topics yet. Add your first topic below.</td></tr>`;
+
+  return `
+  <div class="section-title"><h2>Revision Database</h2><button class="btn btn-gold btn-sm" data-act="rev-add">+ Add Topic</button></div>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Topic</th><th>Subject</th><th>Revs</th><th>Last Revised</th><th>Next Revision</th><th>PYQ Acc</th><th>Test Acc</th><th>Mistakes</th><th>Conf.</th><th>Status</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  </div>
+  `;
+}
+
+/* =========================================================================
+   VIEW: TESTS & FLT
+========================================================================= */
+function viewTests(){
+  const rows = STATE.tests.map((t,i)=>{
+    const pct = (t.score!=='' && t.max!=='' && Number(t.max)>0) ? (Number(t.score)/Number(t.max)*100) : null;
+    let perf='—', cls='';
+    if(pct!==null){
+      if(pct>=75){perf='Strong';cls='b-green';}
+      else if(pct>=60){perf='Good';cls='b-teal';}
+      else if(pct>=50){perf='Developing';cls='b-yellow';}
+      else {perf='Weak';cls='b-red';}
+    }
+    return `<tr>
+      <td><b>${t.paper}</b></td>
+      <td>${t.type}</td>
+      <td><input type="date" value="${t.scheduled}" data-act="test-field" data-i="${i}" data-f="scheduled"></td>
+      <td><input type="date" value="${t.completed}" data-act="test-field" data-i="${i}" data-f="completed"></td>
+      <td><input type="number" style="width:56px" value="${t.score}" data-act="test-field" data-i="${i}" data-f="score"></td>
+      <td><input type="number" style="width:56px" value="${t.max}" data-act="test-field" data-i="${i}" data-f="max"></td>
+      <td>${pct!==null?pct.toFixed(1)+'%':'—'}</td>
+      <td><span class="badge ${cls}">${perf}</span></td>
+      <td><input type="checkbox" ${t.analysisDone?'checked':''} data-act="test-analysis" data-i="${i}"></td>
+    </tr>`;
+  }).join('');
+
+  const simRows = FINAL_SIMULATOR.map(s=>`<tr><td class="mono">${fmtDate(s.date)}</td><td>${s.label}</td><td>${s.date===TODAY?'<span class="badge b-gold">TODAY</span>':(s.date<TODAY?'<span class="badge b-teal">PASSED</span>':'')}</td></tr>`).join('');
+
+  return `
+  <div class="section-title"><h2>Test & FLT System — 21 Units (7 papers × 3)</h2><span class="small dim">Nov–Dec 2026</span></div>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Paper</th><th>Type</th><th>Scheduled</th><th>Completed</th><th>Score</th><th>Max</th><th>%</th><th>Performance</th><th>Analysis Done</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  </div>
+
+  <div class="section-title"><h2>Final Simulator Schedule</h2></div>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Date</th><th>Simulation</th><th></th></tr></thead>
+    <tbody>${simRows}</tbody>
+  </table>
+  </div>
+  `;
+}
+
+/* =========================================================================
+   VIEW: MISTAKE LOG
+========================================================================= */
+const MISTAKE_TYPES = ['Conceptual','Factual','Misread Question','Silly Mistake','Memory Failure','Time-Management','Elimination Failure','Answer-Writing Issue'];
+
+function viewMistakes(){
+  const unresolved = STATE.mistakes.filter(m=>!m.resolved);
+  const rows = STATE.mistakes.slice().reverse().map((m)=>{
+    const i = STATE.mistakes.indexOf(m);
+    return `<tr>
+      <td class="small">${fmtDate(m.date)}</td>
+      <td>${m.subject}<br><span class="dim small">${m.topic}</span></td>
+      <td class="small">${m.type}</td>
+      <td class="small">${m.why}</td>
+      <td><span class="badge ${m.resolved?'b-green':'b-red'}">${m.resolved?'RESOLVED':'OPEN'}</span></td>
+      <td>
+        <button class="iconbtn" data-act="mistake-resolve" data-i="${i}">${m.resolved?'↺':'✓'}</button>
+        <button class="iconbtn" data-act="mistake-del" data-i="${i}">✕</button>
+      </td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="6" class="dim">No mistakes logged yet.</td></tr>`;
+
+  return `
+  <div class="section-title"><h2>Mistake Log</h2><button class="btn btn-gold btn-sm" data-act="mistake-add">+ Log Mistake</button></div>
+  <div class="grid g3">
+    <div class="card"><h3>Total Logged</h3><div class="stat">${STATE.mistakes.length}</div></div>
+    <div class="card"><h3>Unresolved</h3><div class="stat" style="color:var(--red)">${unresolved.length}</div></div>
+    <div class="card"><h3>Resolved</h3><div class="stat" style="color:var(--green)">${STATE.mistakes.length-unresolved.length}</div></div>
+  </div>
+  <div class="tbl-wrap" style="margin-top:14px;">
+  <table>
+    <thead><tr><th>Date</th><th>Subject/Topic</th><th>Type</th><th>Why</th><th>Status</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  </div>
+  `;
+}
+
+/* =========================================================================
+   VIEW: ANALYTICS
+========================================================================= */
+function viewAnalytics(){
+  const mainsTotal = STATE.decode.total+STATE.optional.total+STATE.answerWriting.total;
+  const mainsDone = STATE.decode.completed+STATE.optional.completed+STATE.answerWriting.completed;
+  const bpscTotalPages = BPSC_SUBJECTS.reduce((a,s)=>a+s.pages,0)*3;
+  const bpscDone = BPSC_SUBJECTS.reduce((a,s)=>{const d=STATE.bpscSubjects[s.key];return a+d.rev1+d.rev2+d.rev3+d.rev4+d.rev5;},0);
+  const overallPct = ((mainsDone/mainsTotal*0.5)+(bpscDone/bpscTotalPages*0.5))*100;
+
+  // revision distribution
+  const distribution = {0:0,1:0,2:0,3:0,'4+':0};
+  STATE.revisionTopics.forEach(t=>{
+    if(t.revCount<=0) distribution[0]++;
+    else if(t.revCount===1) distribution[1]++;
+    else if(t.revCount===2) distribution[2]++;
+    else if(t.revCount===3) distribution[3]++;
+    else distribution['4+']++;
+  });
+  const maxDist = Math.max(1,...Object.values(distribution));
+
+  // strong/weak subjects by pyq accuracy
+  const subjRanked = BPSC_SUBJECTS.map(s=>({name:s.name, acc:STATE.bpscSubjects[s.key].pyqAccuracy})).sort((a,b)=>b.acc-a.acc);
+  const strong = subjRanked.filter(s=>s.acc>=70).map(s=>s.name);
+  const weak = subjRanked.filter(s=>s.acc>0 && s.acc<50).map(s=>s.name);
+  const critical = STATE.revisionTopics.filter(t=>classifyTopic(t.revCount,t.pyqAcc,t.mistakes,t.nextRevision)==='CRITICAL').map(t=>t.topic);
+
+  // study hour chart last 14 days
+  const days = lastNDays(14);
+  const hoursBars = days.map(d=>{
+    const h = hoursFor(d);
+    const pct = Math.min(100, h/DAILY_TARGET_HOURS*100);
+    return `<div class="col"><div class="fill ${h<CRITICAL_HOUR_THRESHOLD?'under':''}" style="height:${pct}%"></div><div class="lbl">${d.slice(8)}</div></div>`;
+  }).join('');
+  const avgHours = (days.reduce((a,d)=>a+hoursFor(d),0)/days.length).toFixed(1);
+  const daysAtTarget = days.filter(d=>hoursFor(d)>=DAILY_TARGET_HOURS).length;
+  const daysBelow = days.filter(d=>hoursFor(d)<CRITICAL_HOUR_THRESHOLD).length;
+
+  // test analytics
+  const scored = STATE.tests.filter(t=>t.score!=='' && t.max!=='' && Number(t.max)>0).map(t=>Number(t.score)/Number(t.max)*100);
+  const avgScore = scored.length? (scored.reduce((a,b)=>a+b,0)/scored.length).toFixed(1) : '—';
+  const highScore = scored.length? Math.max(...scored).toFixed(1):'—';
+  const lowScore = scored.length? Math.min(...scored).toFixed(1):'—';
+
+  return `
+  <div class="section-title"><h2>Overall</h2></div>
+  <div class="grid g4">
+    <div class="card"><h3>Overall Completion</h3><div class="stat">${overallPct.toFixed(1)}%</div></div>
+    <div class="card"><h3>Mains Completion</h3><div class="stat">${(mainsDone/mainsTotal*100).toFixed(1)}%</div></div>
+    <div class="card"><h3>BPSC Completion</h3><div class="stat">${(bpscDone/bpscTotalPages*100).toFixed(1)}%</div></div>
+    <div class="card"><h3>Avg Hours (14d)</h3><div class="stat">${avgHours}</div></div>
+  </div>
+
+  <div class="section-title"><h2>Study-Hour Analytics — Last 14 Days</h2><span class="small dim">${daysAtTarget} days ≥${DAILY_TARGET_HOURS}h · ${daysBelow} days &lt;${CRITICAL_HOUR_THRESHOLD}h</span></div>
+  <div class="card"><div class="chart-bars">${hoursBars}</div></div>
+
+  <div class="grid g2" style="margin-top:14px;">
+    <div class="card">
+      <h3>Revision Distribution</h3>
+      ${Object.entries(distribution).map(([k,v])=>`
+        <div class="row small"><span class="muted">Revised ${k} time${k==1?'':'s'}</span><span>${v}</span></div>
+        <div class="bar"><div style="width:${v/maxDist*100}%"></div></div>
+      `).join('')}
+    </div>
+    <div class="card">
+      <h3>Test Analytics</h3>
+      <div class="row"><span class="muted">Average Score</span><b>${avgScore}${avgScore!=='—'?'%':''}</b></div>
+      <div class="row"><span class="muted">Highest Score</span><b>${highScore}${highScore!=='—'?'%':''}</b></div>
+      <div class="row"><span class="muted">Lowest Score</span><b>${lowScore}${lowScore!=='—'?'%':''}</b></div>
+      <div class="row"><span class="muted">Tests Recorded</span><b>${scored.length} / 21</b></div>
+    </div>
+  </div>
+
+  <div class="grid g3" style="margin-top:14px;">
+    <div class="card"><h3>Strong Areas</h3>${strong.length?strong.map(s=>`<span class="chip" style="margin:2px;color:var(--green);border-color:var(--green)">${s}</span>`).join(''):'<span class="dim small">None yet</span>'}</div>
+    <div class="card"><h3>Weak Areas</h3>${weak.length?weak.map(s=>`<span class="chip" style="margin:2px;color:var(--red);border-color:var(--red)">${s}</span>`).join(''):'<span class="dim small">None yet</span>'}</div>
+    <div class="card"><h3>Critical Topics</h3>${critical.length?critical.map(s=>`<span class="chip" style="margin:2px;color:var(--purple);border-color:var(--purple)">${s}</span>`).join(''):'<span class="dim small">None yet</span>'}</div>
+  </div>
+  `;
+}
+
+/* =========================================================================
+   VIEW: PRIORITY ENGINE
+========================================================================= */
+function viewPriority(){
+  const items = computePriorities();
+  const levels = {1:'PRIORITY 1 — Critical',2:'PRIORITY 2 — High',3:'PRIORITY 3 — Important',4:'PRIORITY 4 — Maintenance'};
+  let html = `<div class="section-title"><h2>What Should I Study Now?</h2></div>`;
+  [1,2,3,4].forEach(lvl=>{
+    const list = items.filter(i=>i.level===lvl);
+    if(list.length===0) return;
+    html += `<h4 class="small" style="color:var(--gold);text-transform:uppercase;letter-spacing:.06em;margin-top:16px;">${levels[lvl]}</h4>`;
+    html += list.map(i=>`<div class="priority-item p${lvl}">${i.text}</div>`).join('');
+  });
+  return html;
+}
+
+/* =========================================================================
+   VIEW: WEEKLY / MONTHLY PLANNER
+========================================================================= */
+const MONTH_FOCUS = [
+  {m:'August 2026', text:'BPSC revision, BPSC PYQs, Mains content, Decode Civils, Optional, Answer writing.'},
+  {m:'September 2026', text:'Continue BPSC 5-revision cycle + 4x PYQ practice toward the 25 October exam. Continue Mains content.'},
+  {m:'October 2026', text:'Finish ALL Mains content by 31 October — 145 Decode videos, 160 Optional videos, 70 Answer Writing classes, notes, short-note system.'},
+  {m:'November 2026', text:'Notes revision, PYQ workbook, sectional tests, FLTs, weak-area correction.'},
+  {m:'December 2026', text:'Final revision, sectional tests, FLTs, full simulations, performance analysis.'},
+];
+
+function weekKey(d){
+  const dt = parseISO(d);
+  const day = dt.getDay();
+  const monday = new Date(dt); monday.setDate(dt.getDate()-((day+6)%7));
+  return monday.toISOString().slice(0,10);
+}
+function viewPlanner(){
+  const wk = weekKey(TODAY);
+  if(!STATE.weeklyReviews[wk]) STATE.weeklyReviews[wk] = {completed:'',missed:'',why:'',carry:'',weaker:'',improved:'',priority:''};
+  const wr = STATE.weeklyReviews[wk];
+  const weekDays = [];
+  for(let i=0;i<7;i++){ const d=new Date(parseISO(wk)); d.setDate(d.getDate()+i); weekDays.push(d.toISOString().slice(0,10)); }
+  const weekHours = weekDays.reduce((a,d)=>a+hoursFor(d),0);
+
+  return `
+  <div class="section-title"><h2>This Week — starting ${fmtDate(wk)}</h2></div>
+  <div class="grid g4">
+    <div class="card"><h3>Week Hours</h3><div class="stat sm">${weekHours.toFixed(1)}h</div></div>
+    <div class="card"><h3>Avg / Day</h3><div class="stat sm">${(weekHours/7).toFixed(1)}h</div></div>
+    <div class="card"><h3>Days ≥${DAILY_TARGET_HOURS}h</h3><div class="stat sm">${weekDays.filter(d=>hoursFor(d)>=DAILY_TARGET_HOURS).length}/7</div></div>
+    <div class="card"><h3>Days &lt;${CRITICAL_HOUR_THRESHOLD}h</h3><div class="stat sm">${weekDays.filter(d=>hoursFor(d)<CRITICAL_HOUR_THRESHOLD).length}/7</div></div>
+  </div>
+
+  <div class="card" style="margin-top:14px;">
+    <h3>Weekly Review</h3>
+    <div class="field"><label>What was completed?</label><textarea data-act="wr-field" data-f="completed">${wr.completed}</textarea></div>
+    <div class="field"><label>What was missed?</label><textarea data-act="wr-field" data-f="missed">${wr.missed}</textarea></div>
+    <div class="field"><label>Why was it missed?</label><textarea data-act="wr-field" data-f="why">${wr.why}</textarea></div>
+    <div class="field"><label>Carried forward</label><textarea data-act="wr-field" data-f="carry">${wr.carry}</textarea></div>
+    <div class="field"><label>Which subject became weaker?</label><input type="text" data-act="wr-field" data-f="weaker" value="${escAttr(wr.weaker)}"></div>
+    <div class="field"><label>Which subject improved?</label><input type="text" data-act="wr-field" data-f="improved" value="${escAttr(wr.improved)}"></div>
+    <div class="field"><label>Priority for next week</label><textarea data-act="wr-field" data-f="priority">${wr.priority}</textarea></div>
+  </div>
+
+  <div class="section-title"><h2>Monthly Focus</h2></div>
+  <div class="grid g2">
+  ${MONTH_FOCUS.map(m=>`<div class="card"><h3>${m.m}</h3><p class="small" style="line-height:1.5;">${m.text}</p></div>`).join('')}
+  </div>
+  `;
+}
+
+/* =========================================================================
+   VIEW: MASTER DASHBOARD
+========================================================================= */
+const MASTER_TIMELINE = [
+  {range:'13 Aug – 25 Oct 2026', label:'BPSC Revision + PYQs + Mains Content'},
+  {range:'13 Aug – 31 Oct 2026', label:'Mains 2026 Content Building'},
+  {range:'1 Nov – 31 Dec 2026', label:'Prelims 2027 GS/CSAT Foundation + Mains Revision'},
+  {range:'1 Jan – 31 Mar 2027', label:'Prelims Notes + PYQs + 30 Sectionals + 20 FLTs'},
+  {range:'1 Apr – 23 May 2027', label:'FINAL PRELIMS REVISION'},
+  {range:'23 May 2027', label:'UPSC PRELIMS', milestone:true},
+  {range:'25 – 31 May 2027', label:'Mains Transition + Notes Update'},
+  {range:'1 Jun – 31 Jul 2027', label:'Mains 2027 FLTs — Minimum 3 per Paper'},
+  {range:'1 – 20 Aug 2027', label:'Final Revision + Last 3 Years PYQ Simulation'},
+];
+const GLOBAL_MILESTONES = [
+  {l:'BPSC Prelims Exam', d:BPSC_DEADLINE},
+  {l:'Mains 2026 Content Deadline', d:MAINS_DEADLINE},
+  {l:'Prelims 2027 Foundation Deadline', d:PRELIMS_FOUNDATION_END},
+  {l:'Prelims 2027 Test Completion', d:PRELIMS_TEST_DEADLINE},
+  {l:'UPSC Prelims 2027', d:PRELIMS_2027_EXAM},
+  {l:'Mains 2027 Test Completion', d:MAINS2027_TEST_DEADLINE},
+  {l:'Final Mains Simulation', d:MAINS2027_SIM_START, end:MAINS2027_EXAM},
+  {l:'Personality Development', d:PERSONALITY_START, end:PERSONALITY_END},
+];
+
+function viewMaster(){
+  const phase = currentPhase();
+  const alerts = generateAlerts();
+  const priorities = computePriorities().slice(0,5);
+
+  const milestoneCards = GLOBAL_MILESTONES.map(m=>{
+    const isRange = !!m.end;
+    const target = isRange ? (TODAY<m.d ? m.d : m.end) : m.d;
+    const days = clampDay(daysBetween(TODAY, target));
+    const passed = TODAY > (m.end||m.d);
+    return `<div class="card">
+      <h3>${m.l}</h3>
+      <div class="stat sm">${passed?'Passed':days+' days'}</div>
+      <div class="small dim">${fmtDate(m.d)}${isRange?' – '+fmtDate(m.end):''}</div>
+    </div>`;
+  }).join('');
+
+  const timelineHtml = MASTER_TIMELINE.map((t,i)=>{
+    const active = phase.desc===t.range || (t.milestone && TODAY===PRELIMS_2027_EXAM);
+    return `<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;${active?'background:rgba(209,165,68,.08);border-radius:3px;':''}">
+      <div style="min-width:150px;" class="mono small ${active?'':'dim'}">${t.range}</div>
+      <div style="flex:1;${t.milestone?'color:var(--gold);font-weight:600;':''}">${t.label}${active?' <span class="badge b-gold">CURRENT</span>':''}</div>
+    </div>${i<MASTER_TIMELINE.length-1?'<div style="text-align:center;color:var(--dim);font-size:11px;">↓</div>':''}`;
+  }).join('');
+
+  return `
+  <div class="section-title"><h2>Global Milestones</h2><span class="small dim">Current phase: ${phase.name}</span></div>
+  <div class="grid g4">${milestoneCards}</div>
+
+  <div class="section-title"><h2>Smart Alerts</h2></div>
+  <div class="card">
+    ${alerts.map(a=>`<div class="row small" style="padding:5px 0;border-bottom:1px solid var(--line);"><span>${alertIcon(a.c)} ${a.t}</span></div>`).join('')}
+  </div>
+
+  <div class="section-title"><h2>Top Priorities Right Now</h2></div>
+  <div class="card">
+    ${priorities.map(p=>`<div class="priority-item p${p.level}">${p.text}</div>`).join('')}
+  </div>
+
+  <div class="section-title"><h2>Master Timeline</h2></div>
+  <div class="card">${timelineHtml}</div>
+  `;
+}
+
+/* =========================================================================
+   VIEW: UPSC PRELIMS 2027 (GS + CSAT Foundation)
+========================================================================= */
+function viewPrelims2027(){
+  const finalMode = isPrelimsFinalMode();
+  const rows = PRELIMS_SUBJECTS.map(s=>{
+    const d = STATE.prelims2027.subjects[s.key];
+    const status = prelimsSubjectStatus(d);
+    const revsDone = d.revisions.filter(Boolean).length;
+    const statusMap = {'Not Started':'b-red','In Progress':'b-yellow','Completed':'b-green','Needs Revision':'b-purple'};
+    return `<tr>
+      <td><b>${s.name}</b></td>
+      <td><input type="checkbox" ${d.sourceCompleted?'checked':''} data-act="prelims-field" data-key="${s.key}" data-f="sourceCompleted" data-type="bool"></td>
+      <td><input type="checkbox" ${d.notesUpdated?'checked':''} data-act="prelims-field" data-key="${s.key}" data-f="notesUpdated" data-type="bool"></td>
+      <td>${[0,1,2,3,4].map(i=>`<input type="checkbox" title="Revision ${i+1}" ${d.revisions[i]?'checked':''} data-act="prelims-rev" data-key="${s.key}" data-idx="${i}">`).join(' ')}<br><span class="small dim">${revsDone}/5</span></td>
+      <td><input type="text" style="width:110px" value="${escAttr(d.weakTopics)}" data-act="prelims-field" data-key="${s.key}" data-f="weakTopics"></td>
+      <td><input type="number" style="width:60px" value="${d.hoursSpent}" data-act="prelims-field" data-key="${s.key}" data-f="hoursSpent" data-type="num"></td>
+      <td><span class="badge ${statusMap[status]}">${status}</span></td>
+    </tr>`;
+  }).join('');
+
+  const csatRows = CSAT_AREAS.map(a=>{
+    const d = STATE.csat.areas[a.key];
+    const acc = d.attempted>0 ? (d.correct/d.attempted*100).toFixed(1) : '—';
+    return `<tr>
+      <td><b>${a.name}</b></td>
+      <td><input type="number" style="width:60px" value="${d.hours}" data-act="csat-field" data-key="${a.key}" data-f="hours"></td>
+      <td><input type="number" style="width:64px" value="${d.attempted}" data-act="csat-field" data-key="${a.key}" data-f="attempted"></td>
+      <td><input type="number" style="width:60px" value="${d.correct}" data-act="csat-field" data-key="${a.key}" data-f="correct"></td>
+      <td><input type="number" style="width:60px" value="${d.incorrect}" data-act="csat-field" data-key="${a.key}" data-f="incorrect"></td>
+      <td>${acc}${acc!=='—'?'%':''}</td>
+      <td><input type="number" style="width:50px" value="${d.practiceSessions}" data-act="csat-field" data-key="${a.key}" data-f="practiceSessions"></td>
+      <td><input type="number" style="width:50px" value="${d.testsCompleted}" data-act="csat-field" data-key="${a.key}" data-f="testsCompleted"></td>
+      <td><input type="text" style="width:100px" value="${escAttr(d.weakArea)}" data-act="csat-field" data-key="${a.key}" data-f="weakArea"></td>
+    </tr>`;
+  }).join('');
+
+  const gsCompletion = PRELIMS_SUBJECTS.reduce((a,s)=>a+STATE.prelims2027.subjects[s.key].revisions.filter(Boolean).length,0)/(PRELIMS_SUBJECTS.length*5)*100;
+  const csatAttempted = Object.values(STATE.csat.areas).reduce((a,c)=>a+c.attempted,0);
+  const csatCorrect = Object.values(STATE.csat.areas).reduce((a,c)=>a+c.correct,0);
+  const csatAcc = csatAttempted? (csatCorrect/csatAttempted*100).toFixed(1) : '—';
+
+  let readiness = null;
+  if(finalMode){ readiness = computeReadinessScore(); }
+
+  return `
+  <div class="section-title"><h2>UPSC Prelims 2027</h2><span class="small dim mono">${daysToPrelims2027} days to exam · ${fmtDate(PRELIMS_2027_EXAM)}</span></div>
+  ${finalMode ? `<div class="card" style="border-color:var(--gold);"><h3 style="color:var(--gold);">FINAL PRELIMS MODE</h3>
+    <div class="grid g4">
+      <div><div class="stat">${daysToPrelims2027}</div><div class="small dim">days remaining</div></div>
+      <div><div class="stat sm">${readiness.score}/100</div><span class="badge ${readinessLabel(readiness.score).c}">${readinessLabel(readiness.score).t}</span></div>
+      <div><div class="stat sm">${readiness.worstSubj||'—'}</div><div class="small dim">weakest subject${readiness.worstAcc<101?' ('+readiness.worstAcc.toFixed(0)+'% acc)':''}</div></div>
+      <div><div class="stat sm">${readiness.fltCompleted}/20</div><div class="small dim">FLTs completed</div></div>
+    </div>
+  </div>` : ''}
+
+  <div class="grid g4" style="margin-top:14px;">
+    <div class="card"><h3>GS 5x-Revision Progress</h3><div class="stat sm">${gsCompletion.toFixed(1)}%</div></div>
+    <div class="card"><h3>CSAT Accuracy</h3><div class="stat sm">${csatAcc}${csatAcc!=='—'?'%':''}</div></div>
+    <div class="card"><h3>Foundation Window</h3><div class="small dim">1 Nov – 31 Dec 2026</div></div>
+    <div class="card"><h3>Test Phase Deadline</h3><div class="small dim">${fmtDate(PRELIMS_TEST_DEADLINE)}</div></div>
+  </div>
+
+  <div class="section-title"><h2>GS Progress — Standard Sources & Notes</h2></div>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Subject</th><th>Source Done</th><th>Notes Updated</th><th>Revisions (1–5)</th><th>Weak Topics</th><th>Hours</th><th>Status</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  </div>
+
+  <div class="section-title"><h2>CSAT Progress</h2></div>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Area</th><th>Hours</th><th>Attempted</th><th>Correct</th><th>Incorrect</th><th>Accuracy</th><th>Sessions</th><th>Tests</th><th>Weak Area</th></tr></thead>
+    <tbody>${csatRows}</tbody>
+  </table>
+  </div>
+  `;
+}
+
+/* =========================================================================
+   VIEW: PRELIMS PYQs (2013–2026)
+========================================================================= */
+function viewPrelimsPyq(){
+  const subs = STATE.prelimsPyq.subjects;
+  const rows = PRELIMS_SUBJECTS.map(s=>{
+    const d = subs[s.key];
+    const acc = d.correct+d.incorrect>0 ? (d.correct/(d.correct+d.incorrect)*100).toFixed(1) : '—';
+    return `<tr>
+      <td><b>${s.name}</b></td>
+      <td><input type="number" style="width:60px" value="${d.total}" data-act="ppyq-field" data-key="${s.key}" data-f="total"></td>
+      <td><input type="number" style="width:60px" value="${d.completed}" data-act="ppyq-field" data-key="${s.key}" data-f="completed"></td>
+      <td><input type="number" style="width:60px" value="${d.correct}" data-act="ppyq-field" data-key="${s.key}" data-f="correct"></td>
+      <td><input type="number" style="width:60px" value="${d.incorrect}" data-act="ppyq-field" data-key="${s.key}" data-f="incorrect"></td>
+      <td>${acc}${acc!=='—'?'%':''}</td>
+      <td><input type="number" style="width:50px" value="${d.revisionCount}" min="0" max="5" data-act="ppyq-field" data-key="${s.key}" data-f="revisionCount"></td>
+      <td><input type="date" value="${d.nextRevision}" data-act="ppyq-field" data-key="${s.key}" data-f="nextRevision"></td>
+    </tr>`;
+  }).join('');
+
+  const total = Object.values(subs).reduce((a,s)=>a+s.total,0);
+  const completed = Object.values(subs).reduce((a,s)=>a+s.completed,0);
+  const p = paceEngineFrom(total, completed, PRELIMS_FOUNDATION_START, PRELIMS_TEST_DEADLINE);
+  const avgRevisions = Object.values(subs).reduce((a,s)=>a+s.revisionCount,0)/Object.values(subs).length;
+
+  const entryRows = STATE.prelimsPyq.entries.slice().reverse().map(e=>{
+    const i = STATE.prelimsPyq.entries.indexOf(e);
+    return `<tr>
+      <td class="small">${e.year}</td><td class="small">${e.subject}</td><td class="small">${e.topic}</td>
+      <td><span class="badge ${e.attempted?(e.correct?'b-green':'b-red'):'b-yellow'}">${e.attempted?(e.correct?'Correct':'Wrong'):'Unattempted'}</span></td>
+      <td class="small">${e.revisionCount}</td>
+      <td><button class="iconbtn" data-act="ppyq-entry-del" data-i="${i}">✕</button></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="6" class="dim">No individually-logged PYQs yet — use this to flag important or repeatedly-missed questions.</td></tr>`;
+
+  return `
+  <div class="section-title"><h2>UPSC Prelims PYQ Bank — 2013 to 2026</h2><span class="small dim">Target total is editable · excludes test MCQs</span></div>
+  <div class="grid g4">
+    <div class="card"><h3>Total Target</h3><input type="number" style="width:100%;font-size:20px;" value="${STATE.prelimsPyq.total}" data-act="ppyq-total"></div>
+    <div class="card"><h3>Completed</h3><div class="stat sm">${completed} / ${total}</div><div class="bar teal"><div style="width:${total?completed/total*100:0}%"></div></div></div>
+    <div class="card"><h3>Required / Current Pace</h3><div class="stat sm">${p.requiredDaily.toFixed(0)} vs ${p.currentPace.toFixed(0)}/day</div></div>
+    <div class="card"><h3>Avg PYQ Revisions</h3><div class="stat sm">${avgRevisions.toFixed(1)} / 5</div></div>
+  </div>
+
+  <div class="tbl-wrap" style="margin-top:14px;">
+  <table>
+    <thead><tr><th>Subject</th><th>Total</th><th>Completed</th><th>Correct</th><th>Incorrect</th><th>Accuracy</th><th>Rev. Count</th><th>Next Revision</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  </div>
+
+  <div class="section-title"><h2>Flagged Individual PYQs</h2><button class="btn btn-gold btn-sm" data-act="ppyq-entry-add">+ Log PYQ</button></div>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Year</th><th>Subject</th><th>Topic</th><th>Result</th><th>Revs</th><th></th></tr></thead>
+    <tbody>${entryRows}</tbody>
+  </table>
+  </div>
+  `;
+}
+
+/* =========================================================================
+   VIEW: PRELIMS TESTS (30 Sectional + 20 FLT, Jan–Mar 2027)
+========================================================================= */
+function viewPrelimsTests(){
+  const tests = STATE.prelimsTests.tests;
+  const completed = tests.filter(t=>t.actual).length;
+  const overdue = tests.filter(t=>!t.actual && t.scheduled<TODAY).length;
+  const dueThisWeek = tests.filter(t=>!t.actual && t.scheduled>=TODAY && t.scheduled<=addDaysISO(TODAY,7)).length;
+  const dueThisMonth = tests.filter(t=>!t.actual && t.scheduled.slice(0,7)===TODAY.slice(0,7)).length;
+  const p = paceEngineFrom(50, completed, PRELIMS_TEST_PHASE_START, PRELIMS_TEST_DEADLINE);
+
+  const rows = tests.map((t,i)=>{
+    const pct = (t.score!=='' && t.max!=='' && Number(t.max)>0) ? Number(t.score)/Number(t.max)*100 : null;
+    const isOverdue = !t.actual && t.scheduled<TODAY;
+    return `<tr style="${isOverdue?'background:rgba(217,97,92,.07)':''}">
+      <td class="small">${t.num}</td>
+      <td><span class="badge ${t.type==='Sectional'?'b-teal':'b-gold'}">${t.type}</span></td>
+      <td><input type="text" style="width:90px" value="${escAttr(t.subject)}" data-act="ptest-field" data-i="${i}" data-f="subject" placeholder="subject"></td>
+      <td class="mono small">${fmtDate(t.scheduled)}</td>
+      <td><input type="date" value="${t.actual}" data-act="ptest-field" data-i="${i}" data-f="actual"></td>
+      <td><input type="number" style="width:56px" value="${t.score}" data-act="ptest-field" data-i="${i}" data-f="score"></td>
+      <td><input type="number" style="width:56px" value="${t.max}" data-act="ptest-field" data-i="${i}" data-f="max"></td>
+      <td>${pct!==null?pct.toFixed(1)+'%':(isOverdue?'<span class="badge b-red">OVERDUE</span>':'—')}</td>
+      <td><input type="checkbox" ${t.analysisDone?'checked':''} data-act="ptest-analysis" data-i="${i}"></td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <div class="section-title"><h2>Prelims Test Calendar — 30 Sectional + 20 Full-Length</h2><span class="small dim">1 Jan – 31 Mar 2027</span></div>
+  <div class="grid g4">
+    <div class="card"><h3>Completed</h3><div class="stat">${completed}<span class="small dim">/50</span></div></div>
+    <div class="card"><h3>Due This Week</h3><div class="stat sm">${dueThisWeek}</div></div>
+    <div class="card"><h3>Due This Month</h3><div class="stat sm">${dueThisMonth}</div></div>
+    <div class="card"><h3>Overdue</h3><div class="stat sm" style="color:${overdue>0?'var(--red)':'inherit'}">${overdue}</div></div>
+  </div>
+  <div class="grid g2" style="margin-top:12px;">
+    <div class="card"><h3>Required Weekly Pace</h3><div class="stat sm">${(p.requiredDaily*7).toFixed(1)} tests/week</div></div>
+    <div class="card"><h3>Status</h3>${statusBadge(p.status)}</div>
+  </div>
+
+  <div class="tbl-wrap" style="margin-top:14px;">
+  <table>
+    <thead><tr><th>#</th><th>Type</th><th>Subject</th><th>Scheduled</th><th>Actual</th><th>Score</th><th>Max</th><th>%</th><th>Analysis</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  </div>
+  <p class="small dim" style="margin-top:8px;">Tests are auto-distributed across the window. Change "Actual" once attempted; anything past its scheduled date with no actual date shows as OVERDUE.</p>
+  `;
+}
+function addDaysISO(dateStr, n){
+  const d = parseISO(dateStr); d.setDate(d.getDate()+n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+/* =========================================================================
+   VIEW: MAINS 2027 (overview + workflow + PYQ simulator)
+========================================================================= */
+function viewMains2027(){
+  const finalSim = isMainsFinalMode();
+  const sims = STATE.mains2027.pyqSimulations;
+  const simRows = sims.slice().reverse().map(s=>{
+    const i = sims.indexOf(s);
+    const pct = (s.score!=='' && s.max!=='') ? (Number(s.score)/Number(s.max)*100).toFixed(1)+'%' : '—';
+    return `<tr><td class="small">${s.paper}</td><td class="small">${s.year}</td><td class="small">${pct}</td><td class="small">${s.notes||''}</td>
+      <td><button class="iconbtn" data-act="sim-del" data-i="${i}">✕</button></td></tr>`;
+  }).join('') || `<tr><td colspan="5" class="dim">No simulations logged yet.</td></tr>`;
+
+  return `
+  <div class="section-title"><h2>UPSC Mains 2027</h2><span class="small dim mono">${daysToMains2027Exam} days to exam · ${fmtDate(MAINS2027_EXAM)}</span></div>
+
+  <div class="grid g4">
+    <div class="card"><h3>Test Deadline</h3><div class="stat sm">${fmtDate(MAINS2027_TEST_DEADLINE)}</div><div class="small dim">${daysToMains2027Tests} days left</div></div>
+    <div class="card"><h3>Final Simulation Window</h3><div class="small dim">${fmtDate(MAINS2027_SIM_START)} – ${fmtDate(MAINS2027_EXAM)}</div></div>
+    <div class="card"><h3>FLTs Completed</h3><div class="stat sm">${STATE.mainsFlts2027.filter(t=>t.attempted).length}/21</div></div>
+    <div class="card"><h3>Mode</h3>${finalSim?'<span class="badge b-gold">FINAL SIMULATION + PYQ MODE</span>':'<span class="badge b-teal">Standard</span>'}</div>
+  </div>
+
+  <div class="section-title"><h2>Post-Prelims Workflow</h2></div>
+  <div class="card">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+      ${['Revise Notes','Update with Current Affairs','Attempt Test','Analyse Test','Identify Weakness','Revise Notes','Attempt Next Test'].map((s,i,arr)=>`<span class="chip">${s}</span>${i<arr.length-1?'<span class="dim">→</span>':''}`).join('')}
+    </div>
+  </div>
+
+  <div class="section-title"><h2>Last-3-Years PYQ Simulator</h2><button class="btn btn-gold btn-sm" data-act="sim-add">+ New Simulation</button></div>
+  <p class="small dim">Enter/import only questions you legally have access to — this is a practice-log interface, not a question database.</p>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Paper</th><th>Year</th><th>Score %</th><th>Notes</th><th></th></tr></thead>
+    <tbody>${simRows}</tbody>
+  </table>
+  </div>
+  `;
+}
+
+/* =========================================================================
+   VIEW: MAINS 2027 FLTs (21 units, structured analysis engine)
+========================================================================= */
+function viewMainsFlt(){
+  const flts = STATE.mainsFlts2027;
+  const rows = flts.map((t,i)=>{
+    const pct = (t.score!=='' && t.max!=='' && Number(t.max)>0) ? (Number(t.score)/Number(t.max)*100).toFixed(1)+'%' : '—';
+    return `<tr>
+      <td><b>${t.paper}</b><br><span class="dim small">#${t.num}</span></td>
+      <td><input type="date" value="${t.scheduled}" data-act="mflt-field" data-i="${i}" data-f="scheduled"></td>
+      <td><input type="date" value="${t.attempted}" data-act="mflt-field" data-i="${i}" data-f="attempted"></td>
+      <td><input type="number" style="width:56px" value="${t.score}" data-act="mflt-field" data-i="${i}" data-f="score"></td>
+      <td><input type="number" style="width:56px" value="${t.max}" data-act="mflt-field" data-i="${i}" data-f="max"></td>
+      <td>${pct}</td>
+      <td><button class="iconbtn" data-act="mflt-analyse" data-i="${i}">✎ Analyse</button></td>
+    </tr>`;
+  }).join('');
+
+  const recurring = detectRecurringFltIssues();
+
+  return `
+  <div class="section-title"><h2>Mains 2027 FLTs — 7 Papers × 3 = 21</h2><span class="small dim">1 Jun – 31 Jul 2027</span></div>
+  ${recurring ? `<div class="card" style="border-color:var(--red);margin-bottom:12px;">🔴 ${recurring}</div>` : ''}
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Paper</th><th>Scheduled</th><th>Attempted</th><th>Score</th><th>Max</th><th>%</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  </div>
+  `;
+}
+function detectRecurringFltIssues(){
+  const flags = ['recallFailure','structureProblem','timeManagement','caGap','exampleGap','questionInterp','presentation'];
+  const labels = {recallFailure:'recall failure', structureProblem:'structure problems', timeManagement:'time-management problems', caGap:'current-affairs gaps', exampleGap:'example/value-addition gaps', questionInterp:'question-interpretation problems', presentation:'presentation problems'};
+  const recent = STATE.mainsFlts2027.filter(t=>t.attempted).slice(-6);
+  if(recent.length<3) return null;
+  let worst=null, worstCount=0;
+  flags.forEach(f=>{
+    const count = recent.filter(t=>t.analysis[f]).length;
+    if(count>worstCount){ worstCount=count; worst=f; }
+  });
+  if(worst && worstCount>=Math.ceil(recent.length*0.5)){
+    return `You have reported ${labels[worst]} in ${worstCount} of your last ${recent.length} Mains tests. This is now a high-priority weakness.`;
+  }
+  return null;
+}
+
+/* =========================================================================
+   VIEW: PERSONALITY DEVELOPMENT
+========================================================================= */
+function viewPersonality(){
+  const phase2 = TODAY>=PERSONALITY_PHASE2_START;
+  const log = STATE.personality.dailyLog[TODAY] || {};
+  const activities = STATE.personality.dailyActivities;
+  const totalMin = activities.reduce((a,x)=>a+Number(x.minutes||0),0);
+
+  const sessions = STATE.personality.sessions;
+  const totalSessions = sessions.length;
+  const totalMinutes = sessions.reduce((a,s)=>a+(Number(s.minutes)||0),0);
+  const avgDuration = totalSessions? (totalMinutes/totalSessions).toFixed(1):0;
+  const avgOf = (field)=> sessions.length? (sessions.reduce((a,s)=>a+(Number(s[field])||0),0)/sessions.length).toFixed(1) : '—';
+
+  const skills = ['clarity','fluency','grammar','vocabulary','pronunciation','confidence','structure'];
+  const skillAverages = skills.map(k=>({k, v: sessions.length? sessions.reduce((a,s)=>a+(Number(s[k])||0),0)/sessions.length : 0}));
+  const weakestSkill = skillAverages.length? skillAverages.reduce((a,b)=>a.v<b.v?a:b) : null;
+
+  const sessionRows = sessions.slice().reverse().slice(0,15).map(s=>{
+    const i = sessions.indexOf(s);
+    return `<tr><td class="small">${fmtDate(s.date)}</td><td class="small">${s.topic}</td><td class="small">${s.minutes}m</td>
+      <td class="small">${s.clarity}/${s.fluency}/${s.vocabulary}/${s.confidence}</td>
+      <td><button class="iconbtn" data-act="pers-del" data-i="${i}">✕</button></td></tr>`;
+  }).join('') || `<tr><td colspan="5" class="dim">No speaking sessions logged yet.</td></tr>`;
+
+  return `
+  <div class="section-title"><h2>Personality Development</h2><span class="small dim">13 Aug 2026 – 31 Dec 2027 · ${phase2?'Interview/Discussion focus active':'Communication foundation phase'}</span></div>
+
+  <div class="grid g4">
+    <div class="card"><h3>Sessions Logged</h3><div class="stat sm">${totalSessions}</div></div>
+    <div class="card"><h3>Total Minutes</h3><div class="stat sm">${totalMinutes}</div></div>
+    <div class="card"><h3>Avg Session</h3><div class="stat sm">${avgDuration}m</div></div>
+    <div class="card"><h3>Weakest Skill</h3><div class="stat sm" style="text-transform:capitalize;">${weakestSkill?weakestSkill.k:'—'}</div>${weakestSkill?`<div class="small dim">${weakestSkill.v.toFixed(1)}/10 avg</div>`:''}</div>
+  </div>
+  ${weakestSkill && sessions.length>=5 ? `<div class="card" style="margin-top:10px;border-color:var(--yellow);">🟡 ${weakestSkill.k.charAt(0).toUpperCase()+weakestSkill.k.slice(1)} is currently your weakest communication area — rated ${weakestSkill.v.toFixed(1)}/10 over ${sessions.length} sessions. Focus on structured 2-minute explanations.</div>` : ''}
+
+  <div class="section-title"><h2>Daily Practice (${totalMin} min/day)</h2></div>
+  <div class="card">
+    ${activities.map((a,i)=>`
+      <div class="blockrow">
+        <input type="checkbox" ${log[i]?'checked':''} data-act="pers-daily-toggle" data-i="${i}">
+        <input type="text" value="${escAttr(a.name)}" data-act="pers-activity-name" data-i="${i}">
+        <span class="small dim">min</span><input type="number" style="width:56px" value="${a.minutes}" data-act="pers-activity-min" data-i="${i}">
+      </div>`).join('')}
+  </div>
+
+  <div class="section-title"><h2>Speaking Topic Generator</h2></div>
+  <div class="card">
+    <div class="row">
+      <select id="topicCategorySel">${Object.keys(SPEAKING_TOPIC_BANK).map(c=>`<option>${c}</option>`).join('')}</select>
+      <button class="btn btn-gold btn-sm" data-act="gen-topic">Generate Random Topic</button>
+    </div>
+    <div id="generatedTopic" class="stat sm" style="margin-top:10px;color:var(--gold);"></div>
+    <button class="btn btn-sm" style="margin-top:8px;" data-act="log-speaking-session">+ Log This Session</button>
+  </div>
+
+  <div class="section-title"><h2>Speaking Sessions</h2></div>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Date</th><th>Topic</th><th>Duration</th><th>C/F/V/Conf (out of 10)</th><th></th></tr></thead>
+    <tbody>${sessionRows}</tbody>
+  </table>
+  </div>
+  `;
+}
+
+/* =========================================================================
+   VIEW: INTERVIEW / DISCUSSION
+========================================================================= */
+function viewInterview(){
+  const active = TODAY>=PERSONALITY_PHASE2_START;
+  const sessions = STATE.interview.sessions;
+  const rows = sessions.slice().reverse().map(s=>{
+    const i = sessions.indexOf(s);
+    return `<tr>
+      <td class="small">${fmtDate(s.date)}</td>
+      <td class="small">${s.topic}</td>
+      <td class="small">${s.question}</td>
+      <td class="small">${s.confidence}/10</td>
+      <td class="small">${s.followUp}</td>
+      <td><button class="iconbtn" data-act="interview-del" data-i="${i}">✕</button></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="6" class="dim">No interview/discussion sessions yet.</td></tr>`;
+
+  const avgConfidence = sessions.length? (sessions.reduce((a,s)=>a+(Number(s.confidence)||0),0)/sessions.length).toFixed(1) : '—';
+
+  return `
+  <div class="section-title"><h2>Interview / Discussion Practice</h2><span class="small dim">${active?'Primary focus from 1 Jan 2027':'Runs alongside communication foundation'}</span></div>
+  <div class="grid g3">
+    <div class="card"><h3>Sessions Logged</h3><div class="stat sm">${sessions.length}</div></div>
+    <div class="card"><h3>Avg Confidence</h3><div class="stat sm">${avgConfidence}${avgConfidence!=='—'?'/10':''}</div></div>
+    <div class="card"><h3>Question Types Covered</h3><div class="small dim">DAF · Situational · Cross-questioning · Ethical dilemmas · Current affairs</div></div>
+  </div>
+
+  <div class="section-title"><h2>Log a Session</h2><button class="btn btn-gold btn-sm" data-act="interview-add">+ Add Session</button></div>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>Date</th><th>Topic</th><th>Question</th><th>Confidence</th><th>Follow-up Handling</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  </div>
+  `;
+}
+
+/* =========================================================================
+   VIEW: DATA (export/import/reset)
+========================================================================= */
+function viewData(){
+  return `
+  <div class="section-title"><h2>Data Management</h2><span class="small dim mono">Dashboard v${STATE.dashboardVersion}</span></div>
+  <div class="card">
+    <p class="small muted">All progress is stored locally in your browser (localStorage). Nothing is sent anywhere. Export a backup regularly — clearing browser data will erase this dashboard's contents. Upgrading this file to a newer version never resets existing progress — new modules are added alongside what you already have.</p>
+    <div class="hairline"></div>
+    <div class="row">
+      <button class="btn btn-gold" data-act="export-data">Export Backup (JSON)</button>
+      <label class="btn" style="position:relative;">Import Backup<input type="file" id="importFile" accept="application/json" style="position:absolute;inset:0;opacity:0;cursor:pointer;"></label>
+      <button class="btn btn-red" data-act="reset-data">Reset All Data</button>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px;">
+    <h3>Plan Constants — 2026</h3>
+    <div class="row small"><span class="muted">Start date</span><b>${fmtDate(START_DATE)}</b></div>
+    <div class="row small"><span class="muted">BPSC deadline</span><b>${fmtDate(BPSC_DEADLINE)}</b></div>
+    <div class="row small"><span class="muted">Mains 2026 content deadline</span><b>${fmtDate(MAINS_DEADLINE)}</b></div>
+    <div class="row small"><span class="muted">Prelims 2027 foundation window</span><b>${fmtDate(PRELIMS_FOUNDATION_START)} – ${fmtDate(PRELIMS_FOUNDATION_END)}</b></div>
+  </div>
+  <div class="card" style="margin-top:14px;">
+    <h3>Plan Constants — 2027</h3>
+    <div class="row small"><span class="muted">Prelims test phase</span><b>${fmtDate(PRELIMS_TEST_PHASE_START)} – ${fmtDate(PRELIMS_TEST_DEADLINE)}</b></div>
+    <div class="row small"><span class="muted">Final Prelims revision</span><b>${fmtDate(PRELIMS_FINAL_REVISION_START)} – ${fmtDate(PRELIMS_2027_EXAM)}</b></div>
+    <div class="row small"><span class="muted">UPSC Prelims 2027</span><b>${fmtDate(PRELIMS_2027_EXAM)}</b></div>
+    <div class="row small"><span class="muted">Mains transition</span><b>${fmtDate(MAINS_TRANSITION_START)}</b></div>
+    <div class="row small"><span class="muted">Mains 2027 FLT window</span><b>${fmtDate(MAINS2027_FLT_START)} – ${fmtDate(MAINS2027_TEST_DEADLINE)}</b></div>
+    <div class="row small"><span class="muted">Final Mains simulation</span><b>${fmtDate(MAINS2027_SIM_START)} – ${fmtDate(MAINS2027_EXAM)}</b></div>
+    <div class="row small"><span class="muted">Personality development</span><b>${fmtDate(PERSONALITY_START)} – ${fmtDate(PERSONALITY_END)}</b></div>
+  </div>
+  `;
+}
+
+/* =========================================================================
+   EVENT HANDLERS
+========================================================================= */
+function escAttr(s){ return (s||'').replace(/"/g,'&quot;'); }
+
+function openModal(html){
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalBg').classList.add('active');
+}
+function closeModal(){ document.getElementById('modalBg').classList.remove('active'); }
+document.getElementById('modalBg').addEventListener('click', e=>{ if(e.target.id==='modalBg') closeModal(); });
+
+function attachHandlers(){
+  const main = document.getElementById('main');
+
+  main.querySelectorAll('[data-act]').forEach(el=>{
+    const act = el.dataset.act;
+
+    if(act==='unit-plus' || act==='unit-minus'){
+      el.onclick = ()=>{
+        const key = el.dataset.key;
+        const delta = act==='unit-plus'?1:-1;
+        STATE[key].completed = Math.max(0, Math.min(STATE[key].total, STATE[key].completed+delta));
+        STATE[key].log[TODAY] = (STATE[key].log[TODAY]||0)+delta;
+        save(); renderAll(); toast('Updated '+key);
+      };
+    }
+    if(act==='block-name') el.onchange=()=>{ ensureToday().blocks[el.dataset.i].name = el.value; save(); };
+    if(act==='block-planned') el.onchange=()=>{ ensureToday().blocks[el.dataset.i].hours = Number(el.value)||0; save(); renderTicker(); };
+    if(act==='block-actual') el.onchange=()=>{ ensureToday().blocks[el.dataset.i].actual = Number(el.value)||0; save(); renderAll(); };
+    if(act==='block-done') el.onchange=()=>{ ensureToday().blocks[el.dataset.i].done = el.checked; save(); renderTicker(); };
+    if(act==='reset-blocks') el.onclick=()=>{ ensureToday().blocks = STATE.blocks.map(b=>({name:b.name,hours:b.hours,actual:0,done:false})); save(); renderAll(); };
+
+    if(act==='toggle-shortnotes') el.onchange=()=>{ if(el.checked) STATE.shortNotes.log[TODAY]=true; else delete STATE.shortNotes.log[TODAY]; save(); renderAll(); };
+    if(act==='toggle-aw') el.onchange=()=>{ if(el.checked) STATE.answerWriting.log[TODAY]=true; else delete STATE.answerWriting.log[TODAY]; save(); renderAll(); };
+    if(act==='toggle-pyqflag') el.onchange=()=>{ STATE.pyqTodayFlag = el.checked ? TODAY : null; save(); renderAll(); };
+    if(act==='today-notes') el.onchange=()=>{ ensureToday().notes = el.value; save(); };
+
+    if(act==='bpsc-rev') el.onchange=()=>{
+      const s = BPSC_SUBJECTS.find(s=>s.key===el.dataset.key);
+      STATE.bpscSubjects[el.dataset.key][el.dataset.rev] = Math.max(0, Math.min(s.pages, Number(el.value)||0));
+      STATE.bpscSubjects[el.dataset.key].lastRevised = TODAY;
+      save(); renderAll();
+    };
+    if(act==='bpsc-field') el.onchange=()=>{
+      const f = el.dataset.f;
+      STATE.bpscSubjects[el.dataset.key][f] = (f==='nextRevision') ? el.value : Number(el.value)||0;
+      save(); renderAll();
+    };
+
+    if(act==='pyq-field') el.onchange=()=>{
+      const f = el.dataset.f;
+      STATE.bpscPyq.subjects[el.dataset.s][f] = (f==='nextRevision') ? el.value : Number(el.value)||0;
+      save(); renderAll();
+    };
+
+    if(act==='rev-add') el.onclick = ()=> openTopicModal(null);
+    if(act==='rev-edit') el.onclick = ()=> openTopicModal(Number(el.dataset.i));
+    if(act==='rev-del') el.onclick = ()=>{ if(confirm('Delete this topic?')){ STATE.revisionTopics.splice(el.dataset.i,1); save(); renderAll(); } };
+    if(act==='rev-inc') el.onclick = ()=>{
+      const t = STATE.revisionTopics[el.dataset.i];
+      t.revCount = (t.revCount||0)+1; t.lastRevised = TODAY;
+      const next = new Date(); next.setDate(next.getDate()+7);
+      t.nextRevision = next.toISOString().slice(0,10);
+      save(); renderAll(); toast('Marked revised');
+    };
+
+    if(act==='test-field') el.onchange=()=>{ STATE.tests[el.dataset.i][el.dataset.f] = el.value; save(); renderAll(); };
+    if(act==='test-analysis') el.onchange=()=>{ STATE.tests[el.dataset.i].analysisDone = el.checked; save(); };
+
+    if(act==='mistake-add') el.onclick = ()=> openMistakeModal();
+    if(act==='mistake-resolve') el.onclick = ()=>{ STATE.mistakes[el.dataset.i].resolved = !STATE.mistakes[el.dataset.i].resolved; save(); renderAll(); };
+    if(act==='mistake-del') el.onclick = ()=>{ if(confirm('Delete this mistake entry?')){ STATE.mistakes.splice(el.dataset.i,1); save(); renderAll(); } };
+
+    if(act==='wr-field') el.onchange=()=>{ STATE.weeklyReviews[weekKey(TODAY)][el.dataset.f] = el.value; save(); };
+
+    /* ---- Prelims 2027 GS ---- */
+    if(act==='prelims-field') el.onchange=()=>{
+      const f = el.dataset.f, key = el.dataset.key;
+      const v = el.dataset.type==='bool' ? el.checked : (el.dataset.type==='num' ? Number(el.value)||0 : el.value);
+      STATE.prelims2027.subjects[key][f] = v;
+      save(); renderAll();
+    };
+    if(act==='prelims-rev') el.onchange=()=>{
+      const key = el.dataset.key, idx = Number(el.dataset.idx);
+      STATE.prelims2027.subjects[key].revisions[idx] = el.checked;
+      STATE.prelims2027.subjects[key].revisionDates[idx] = el.checked ? TODAY : '';
+      save(); renderAll();
+    };
+
+    /* ---- CSAT ---- */
+    if(act==='csat-field') el.onchange=()=>{
+      const f = el.dataset.f, key = el.dataset.key;
+      STATE.csat.areas[key][f] = (f==='weakArea') ? el.value : Number(el.value)||0;
+      save(); renderAll();
+    };
+
+    /* ---- Prelims PYQs ---- */
+    if(act==='ppyq-field') el.onchange=()=>{
+      const f = el.dataset.f, key = el.dataset.key;
+      STATE.prelimsPyq.subjects[key][f] = (f==='nextRevision') ? el.value : Number(el.value)||0;
+      save(); renderAll();
+    };
+    if(act==='ppyq-total') el.onchange=()=>{ STATE.prelimsPyq.total = Number(el.value)||0; save(); renderAll(); };
+    if(act==='ppyq-entry-add') el.onclick = ()=> openPrelimsPyqEntryModal();
+    if(act==='ppyq-entry-del') el.onclick = ()=>{ if(confirm('Delete this PYQ entry?')){ STATE.prelimsPyq.entries.splice(el.dataset.i,1); save(); renderAll(); } };
+
+    /* ---- Prelims Tests ---- */
+    if(act==='ptest-field') el.onchange=()=>{ STATE.prelimsTests.tests[el.dataset.i][el.dataset.f] = el.value; save(); renderAll(); };
+    if(act==='ptest-analysis') el.onchange=()=>{ STATE.prelimsTests.tests[el.dataset.i].analysisDone = el.checked; save(); };
+
+    /* ---- Mains 2027 PYQ simulator ---- */
+    if(act==='sim-add') el.onclick = ()=> openSimModal();
+    if(act==='sim-del') el.onclick = ()=>{ if(confirm('Delete this simulation entry?')){ STATE.mains2027.pyqSimulations.splice(el.dataset.i,1); save(); renderAll(); } };
+
+    /* ---- Mains 2027 FLTs ---- */
+    if(act==='mflt-field') el.onchange=()=>{ STATE.mainsFlts2027[el.dataset.i][el.dataset.f] = el.value; save(); renderAll(); };
+    if(act==='mflt-analyse') el.onclick = ()=> openFltAnalysisModal(Number(el.dataset.i));
+
+    /* ---- Personality development ---- */
+    if(act==='pers-daily-toggle') el.onchange=()=>{
+      if(!STATE.personality.dailyLog[TODAY]) STATE.personality.dailyLog[TODAY] = {};
+      STATE.personality.dailyLog[TODAY][el.dataset.i] = el.checked;
+      save(); renderAll();
+    };
+    if(act==='pers-activity-name') el.onchange=()=>{ STATE.personality.dailyActivities[el.dataset.i].name = el.value; save(); };
+    if(act==='pers-activity-min') el.onchange=()=>{ STATE.personality.dailyActivities[el.dataset.i].minutes = Number(el.value)||0; save(); renderAll(); };
+    if(act==='gen-topic') el.onclick = ()=>{
+      const cat = document.getElementById('topicCategorySel').value;
+      const list = SPEAKING_TOPIC_BANK[cat] || [];
+      const topic = list[Math.floor(Math.random()*list.length)] || 'Free topic of your choice';
+      document.getElementById('generatedTopic').textContent = topic;
+      document.getElementById('generatedTopic').dataset.topic = topic;
+    };
+    if(act==='log-speaking-session') el.onclick = ()=>{
+      const topicEl = document.getElementById('generatedTopic');
+      openSpeakingSessionModal(topicEl?.dataset.topic || '');
+    };
+    if(act==='pers-del') el.onclick = ()=>{ if(confirm('Delete this session?')){ STATE.personality.sessions.splice(el.dataset.i,1); save(); renderAll(); } };
+
+    /* ---- Interview / discussion ---- */
+    if(act==='interview-add') el.onclick = ()=> openInterviewModal();
+    if(act==='interview-del') el.onclick = ()=>{ if(confirm('Delete this session?')){ STATE.interview.sessions.splice(el.dataset.i,1); save(); renderAll(); } };
+
+    if(act==='export-data') el.onclick = exportData;
+    if(act==='reset-data') el.onclick = ()=>{ if(confirm('This will permanently delete ALL dashboard data. Type OK to confirm by pressing OK below.')){ if(confirm('Are you absolutely sure? This cannot be undone.')){ localStorage.removeItem(STORAGE_KEY); STATE = defaultState(); save(); renderAll(); toast('All data reset'); } } };
+  });
+
+  const importFile = document.getElementById('importFile');
+  if(importFile){
+    importFile.onchange = (e)=>{
+      const file = e.target.files[0]; if(!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev)=>{
+        try{
+          const data = JSON.parse(ev.target.result);
+          STATE = Object.assign(defaultState(), data);
+          save(); renderAll(); toast('Backup imported');
+        }catch(err){ alert('Invalid backup file.'); }
+      };
+      reader.readAsText(file);
+    };
+  }
+}
+
+function exportData(){
+  const blob = new Blob([JSON.stringify(STATE,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `command-center-backup-${TODAY}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Backup exported');
+}
+
+function openTopicModal(idx){
+  const editing = idx!==null;
+  const t = editing ? STATE.revisionTopics[idx] : {topic:'',subject:BPSC_SUBJECTS[0].name,revCount:0,lastRevised:'',nextRevision:'',pyqAcc:0,testAcc:0,mistakes:0,confidence:2};
+  openModal(`
+    <h3>${editing?'Edit':'Add'} Revision Topic</h3>
+    <div class="field"><label>Topic</label><input type="text" id="m-topic" value="${escAttr(t.topic)}"></div>
+    <div class="field"><label>Subject</label><input type="text" id="m-subject" value="${escAttr(t.subject)}" list="subj-list">
+      <datalist id="subj-list">${BPSC_SUBJECTS.map(s=>`<option value="${s.name}">`).join('')}</datalist>
+    </div>
+    <div class="field"><label>Revision Count</label><input type="number" id="m-revcount" value="${t.revCount}" min="0"></div>
+    <div class="field"><label>Last Revised</label><input type="date" id="m-last" value="${t.lastRevised}"></div>
+    <div class="field"><label>Next Revision</label><input type="date" id="m-next" value="${t.nextRevision}"></div>
+    <div class="field"><label>PYQ Accuracy (%)</label><input type="number" id="m-pyqacc" value="${t.pyqAcc}" min="0" max="100"></div>
+    <div class="field"><label>Test Accuracy (%)</label><input type="number" id="m-testacc" value="${t.testAcc}" min="0" max="100"></div>
+    <div class="field"><label>Mistake Count</label><input type="number" id="m-mistakes" value="${t.mistakes}" min="0"></div>
+    <div class="field"><label>Confidence (1–5)</label><input type="number" id="m-conf" value="${t.confidence}" min="1" max="5"></div>
+    <div class="modal-actions">
+      <button class="btn" data-act="close-modal">Cancel</button>
+      <button class="btn btn-gold" id="m-save">Save</button>
+    </div>
+  `);
+  document.getElementById('m-save').onclick = ()=>{
+    const newT = {
+      topic: document.getElementById('m-topic').value.trim() || 'Untitled Topic',
+      subject: document.getElementById('m-subject').value.trim(),
+      revCount: Number(document.getElementById('m-revcount').value)||0,
+      lastRevised: document.getElementById('m-last').value,
+      nextRevision: document.getElementById('m-next').value,
+      pyqAcc: Number(document.getElementById('m-pyqacc').value)||0,
+      testAcc: Number(document.getElementById('m-testacc').value)||0,
+      mistakes: Number(document.getElementById('m-mistakes').value)||0,
+      confidence: Number(document.getElementById('m-conf').value)||1,
+    };
+    if(editing) STATE.revisionTopics[idx] = newT; else STATE.revisionTopics.push(newT);
+    save(); closeModal(); renderAll(); toast('Topic saved');
+  };
+  main_bindClose();
+}
+function openMistakeModal(){
+  openModal(`
+    <h3>Log Mistake</h3>
+    <div class="field"><label>Date</label><input type="date" id="m-date" value="${TODAY}"></div>
+    <div class="field"><label>Subject</label><input type="text" id="m-subject"></div>
+    <div class="field"><label>Topic</label><input type="text" id="m-topic"></div>
+    <div class="field"><label>Question</label><textarea id="m-question"></textarea></div>
+    <div class="field"><label>Mistake Type</label><select id="m-type">${MISTAKE_TYPES.map(t=>`<option>${t}</option>`).join('')}</select></div>
+    <div class="field"><label>Why I got it wrong</label><textarea id="m-why"></textarea></div>
+    <div class="field"><label>Correct concept / approach</label><textarea id="m-concept"></textarea></div>
+    <div class="field"><label>Revision required?</label><select id="m-revreq"><option value="yes">Yes</option><option value="no">No</option></select></div>
+    <div class="modal-actions">
+      <button class="btn" data-act="close-modal">Cancel</button>
+      <button class="btn btn-gold" id="m-save">Save</button>
+    </div>
+  `);
+  document.getElementById('m-save').onclick = ()=>{
+    STATE.mistakes.push({
+      date: document.getElementById('m-date').value || TODAY,
+      subject: document.getElementById('m-subject').value.trim() || '—',
+      topic: document.getElementById('m-topic').value.trim() || '—',
+      question: document.getElementById('m-question').value.trim(),
+      type: document.getElementById('m-type').value,
+      why: document.getElementById('m-why').value.trim(),
+      concept: document.getElementById('m-concept').value.trim(),
+      revisionRequired: document.getElementById('m-revreq').value==='yes',
+      revisionCount: 0,
+      resolved: false,
+    });
+    save(); closeModal(); renderAll(); toast('Mistake logged');
+  };
+  main_bindClose();
+}
+function main_bindClose(){
+  document.querySelectorAll('[data-act="close-modal"]').forEach(b=>b.onclick=closeModal);
+}
+
+function openPrelimsPyqEntryModal(){
+  openModal(`
+    <h3>Log a Prelims PYQ</h3>
+    <div class="field"><label>Year</label><input type="number" id="m-year" min="2013" max="2026" value="2024"></div>
+    <div class="field"><label>Subject</label><select id="m-subject">${PRELIMS_SUBJECTS.map(s=>`<option value="${s.name}">${s.name}</option>`).join('')}</select></div>
+    <div class="field"><label>Topic</label><input type="text" id="m-topic"></div>
+    <div class="field"><label>Question (brief note, not the full text)</label><textarea id="m-question"></textarea></div>
+    <div class="field"><label>Result</label><select id="m-result"><option value="unattempted">Unattempted</option><option value="correct">Correct</option><option value="incorrect">Incorrect</option></select></div>
+    <div class="field"><label>Confidence (1–5)</label><input type="number" id="m-conf" min="1" max="5" value="3"></div>
+    <div class="modal-actions">
+      <button class="btn" data-act="close-modal">Cancel</button>
+      <button class="btn btn-gold" id="m-save">Save</button>
+    </div>
+  `);
+  document.getElementById('m-save').onclick = ()=>{
+    const result = document.getElementById('m-result').value;
+    STATE.prelimsPyq.entries.push({
+      year: Number(document.getElementById('m-year').value)||2024,
+      subject: document.getElementById('m-subject').value,
+      topic: document.getElementById('m-topic').value.trim(),
+      question: document.getElementById('m-question').value.trim(),
+      attempted: result!=='unattempted',
+      correct: result==='correct',
+      mistake: result==='incorrect',
+      revisionCount: 0,
+      lastAttempted: TODAY,
+      confidence: Number(document.getElementById('m-conf').value)||3,
+    });
+    save(); closeModal(); renderAll(); toast('PYQ logged');
+  };
+  main_bindClose();
+}
+
+function openSimModal(){
+  openModal(`
+    <h3>New Mains PYQ Simulation</h3>
+    <div class="field"><label>Paper</label><select id="m-paper">${MAINS2027_PAPERS.map(p=>`<option>${p}</option>`).join('')}</select></div>
+    <div class="field"><label>Year (last 3 years available)</label><input type="number" id="m-year" min="2022" max="2026" value="2025"></div>
+    <div class="field"><label>Score</label><input type="number" id="m-score"></div>
+    <div class="field"><label>Max Marks</label><input type="number" id="m-max"></div>
+    <div class="field"><label>Notes / Weaknesses</label><textarea id="m-notes"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn" data-act="close-modal">Cancel</button>
+      <button class="btn btn-gold" id="m-save">Save</button>
+    </div>
+  `);
+  document.getElementById('m-save').onclick = ()=>{
+    STATE.mains2027.pyqSimulations.push({
+      paper: document.getElementById('m-paper').value,
+      year: Number(document.getElementById('m-year').value)||2025,
+      score: document.getElementById('m-score').value,
+      max: document.getElementById('m-max').value,
+      notes: document.getElementById('m-notes').value.trim(),
+      startedAt: TODAY,
+    });
+    save(); closeModal(); renderAll(); toast('Simulation logged');
+  };
+  main_bindClose();
+}
+
+function openFltAnalysisModal(i){
+  const t = STATE.mainsFlts2027[i];
+  const isEssay = t.paper==='Essay';
+  const isEthics = t.paper==='GS Paper IV';
+  openModal(`
+    <h3>Analyse — ${t.paper} #${t.num}</h3>
+    <div class="field"><label>What went well?</label><textarea id="f-well">${t.analysis.wentWell}</textarea></div>
+    <div class="field"><label>What went wrong?</label><textarea id="f-wrong">${t.analysis.wentWrong}</textarea></div>
+    <div class="field"><label>Content gap</label><textarea id="f-gap">${t.analysis.contentGap}</textarea></div>
+    <div class="field"><label>Action for next test</label><textarea id="f-action">${t.analysis.actionNext}</textarea></div>
+    <div class="field"><label>Flag recurring problems</label>
+      <label class="row small"><span>Recall failure</span><input type="checkbox" id="f-recall" ${t.analysis.recallFailure?'checked':''}></label>
+      <label class="row small"><span>Structure problem</span><input type="checkbox" id="f-structure" ${t.analysis.structureProblem?'checked':''}></label>
+      <label class="row small"><span>Time-management problem</span><input type="checkbox" id="f-time" ${t.analysis.timeManagement?'checked':''}></label>
+      <label class="row small"><span>Current-affairs gap</span><input type="checkbox" id="f-ca" ${t.analysis.caGap?'checked':''}></label>
+      <label class="row small"><span>Example/value-addition gap</span><input type="checkbox" id="f-example" ${t.analysis.exampleGap?'checked':''}></label>
+      <label class="row small"><span>Question-interpretation problem</span><input type="checkbox" id="f-interp" ${t.analysis.questionInterp?'checked':''}></label>
+      <label class="row small"><span>Presentation problem</span><input type="checkbox" id="f-present" ${t.analysis.presentation?'checked':''}></label>
+    </div>
+    ${isEssay?`<div class="field"><label>Essay-specific notes (intro / argument / examples / balance / structure / conclusion / depth)</label><textarea id="f-essay">${t.essay.introduction}</textarea></div>`:''}
+    ${isEthics?`<div class="field"><label>Ethics-specific notes (definitions / examples / case-study / stakeholders / reasoning)</label><textarea id="f-ethics">${t.ethics.definitions}</textarea></div>`:''}
+    <div class="modal-actions">
+      <button class="btn" data-act="close-modal">Cancel</button>
+      <button class="btn btn-gold" id="m-save">Save Analysis</button>
+    </div>
+  `);
+  document.getElementById('m-save').onclick = ()=>{
+    Object.assign(t.analysis, {
+      wentWell: document.getElementById('f-well').value.trim(),
+      wentWrong: document.getElementById('f-wrong').value.trim(),
+      contentGap: document.getElementById('f-gap').value.trim(),
+      actionNext: document.getElementById('f-action').value.trim(),
+      recallFailure: document.getElementById('f-recall').checked,
+      structureProblem: document.getElementById('f-structure').checked,
+      timeManagement: document.getElementById('f-time').checked,
+      caGap: document.getElementById('f-ca').checked,
+      exampleGap: document.getElementById('f-example').checked,
+      questionInterp: document.getElementById('f-interp').checked,
+      presentation: document.getElementById('f-present').checked,
+    });
+    if(isEssay) t.essay.introduction = document.getElementById('f-essay').value.trim();
+    if(isEthics) t.ethics.definitions = document.getElementById('f-ethics').value.trim();
+    t.analysisDone = true;
+    save(); closeModal(); renderAll(); toast('Analysis saved');
+  };
+  main_bindClose();
+}
+
+function openSpeakingSessionModal(prefillTopic){
+  openModal(`
+    <h3>Log Speaking Session</h3>
+    <div class="field"><label>Topic</label><input type="text" id="m-topic" value="${escAttr(prefillTopic)}"></div>
+    <div class="field"><label>Minutes Spoken</label><input type="number" id="m-minutes" value="5"></div>
+    <div class="field"><label>Recording completed?</label><select id="m-recorded"><option value="no">No</option><option value="yes">Yes</option></select></div>
+    <div class="field"><label>Self-review completed?</label><select id="m-selfreview"><option value="no">No</option><option value="yes">Yes</option></select></div>
+    <div class="field"><label>Rate yourself 1–10</label></div>
+    ${['clarity','fluency','grammar','vocabulary','pronunciation','confidence','structure'].map(k=>`
+      <div class="field"><label style="text-transform:capitalize;">${k}</label><input type="number" id="m-${k}" min="1" max="10" value="5"></div>
+    `).join('')}
+    <div class="modal-actions">
+      <button class="btn" data-act="close-modal">Cancel</button>
+      <button class="btn btn-gold" id="m-save">Save</button>
+    </div>
+  `);
+  document.getElementById('m-save').onclick = ()=>{
+    const s = {date:TODAY, topic:document.getElementById('m-topic').value.trim()||'Untitled', minutes:Number(document.getElementById('m-minutes').value)||0,
+      recorded:document.getElementById('m-recorded').value==='yes', selfReview:document.getElementById('m-selfreview').value==='yes'};
+    ['clarity','fluency','grammar','vocabulary','pronunciation','confidence','structure'].forEach(k=>{ s[k]=Number(document.getElementById('m-'+k).value)||5; });
+    STATE.personality.sessions.push(s);
+    save(); closeModal(); renderAll(); toast('Session logged');
+  };
+  main_bindClose();
+}
+
+function openInterviewModal(){
+  openModal(`
+    <h3>Log Interview / Discussion Session</h3>
+    <div class="field"><label>Topic</label><input type="text" id="m-topic"></div>
+    <div class="field"><label>Question</label><textarea id="m-question"></textarea></div>
+    <div class="field"><label>My Answer (summary)</label><textarea id="m-answer"></textarea></div>
+    <div class="field"><label>Confidence (1–10)</label><input type="number" id="m-confidence" min="1" max="10" value="5"></div>
+    <div class="field"><label>Clarity (1–10)</label><input type="number" id="m-clarity" min="1" max="10" value="5"></div>
+    <div class="field"><label>Follow-up handling</label><select id="m-followup"><option>Good</option><option>Average</option><option>Needs work</option></select></div>
+    <div class="field"><label>Improvement required</label><textarea id="m-improve"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn" data-act="close-modal">Cancel</button>
+      <button class="btn btn-gold" id="m-save">Save</button>
+    </div>
+  `);
+  document.getElementById('m-save').onclick = ()=>{
+    STATE.interview.sessions.push({
+      date: TODAY,
+      topic: document.getElementById('m-topic').value.trim(),
+      question: document.getElementById('m-question').value.trim(),
+      answer: document.getElementById('m-answer').value.trim(),
+      confidence: Number(document.getElementById('m-confidence').value)||5,
+      clarity: Number(document.getElementById('m-clarity').value)||5,
+      followUp: document.getElementById('m-followup').value,
+      improvement: document.getElementById('m-improve').value.trim(),
+    });
+    save(); closeModal(); renderAll(); toast('Session logged');
+  };
+  main_bindClose();
+}
+
+/* =========================================================================
+   INIT
+========================================================================= */
+ensureToday();
+save();
+renderAll();
+
+/* Register service worker for offline + installable app support.
+   Silently does nothing if opened as a local file:// (no server) —
+   the dashboard itself still works exactly the same either way. */
+if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost')){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+
+</script>
+</body>
+</html>
